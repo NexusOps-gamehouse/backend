@@ -1,0 +1,172 @@
+name: backend-ci-cd
+
+# feature/* -> develop PR 시 검증, develop merge 시 배포까지 수행한다.
+# staging/main 배포는 develop 파이프라인 검증 후 별도로 확장한다.
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+# 같은 브랜치에 커밋이 연달아 올라오면 이전 실행을 취소한다.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# 최소 권한만 부여한다. PR 실행은 Docker Hub 자격증명을 사용하지 않는다.
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: gamehouse-backend
+
+jobs:
+  # ---------------------------------------------------------------
+  # [PR 게이트 1] 빠른 검사 - 코드 레벨
+  # 컴파일/테스트 실패를 2분 안에 알려주는 역할.
+  # Dockerfile은 bootJar를 쓰므로 테스트가 실행되는 유일한 자리이기도 하다.
+  # ---------------------------------------------------------------
+  verify:
+    name: verify (build & secret scan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      # build = 컴파일 + 테스트 + jar
+      # 현재 src/test가 없어 test task는 통과만 하고 넘어간다.
+      - name: Unit test & build
+        run: ./gradlew build --no-daemon
+
+      # SAST: 토큰/비밀번호가 코드에 섞여 들어갔는지 검사한다.
+      # merge 후에는 git 히스토리에 남아 되돌리기 어려우므로 반드시 PR 시점에 돌린다.
+      - name: Secret scan (gitleaks)
+        run: |
+          docker run --rm -v "${PWD}:/repo" zricethezav/gitleaks:latest \
+            detect --source=/repo --no-git --redact --verbose
+
+  # ---------------------------------------------------------------
+  # [PR 게이트 2] 느린 검사 - 런타임 레벨
+  # Dockerfile이 jlink로 JRE를 직접 조립하므로, 모듈이 빠지면
+  # 컴파일/빌드는 모두 통과하고 "실행할 때만" NoClassDefFound가 난다.
+  # 이 실패는 컨테이너를 실제로 띄워야만 잡히므로 merge 전에 배치한다.
+  # verify와 병렬로 실행되어 전체 대기 시간을 늘리지 않는다.
+  # ---------------------------------------------------------------
+  image-check:
+    name: image-check (build & smoke test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # 앱은 DB 연결 없이 기동하지 않는다(ddl-auto: update).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: duo
+          POSTGRES_USER: duo
+          POSTGRES_PASSWORD: ci-local-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U duo -d duo"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Dockerfile이 BuildKit 문법을 쓰고, type=gha 캐시를 쓰려면 필요하다.
+      - uses: docker/setup-buildx-action@v3
+
+      # push 없이 runner의 Docker에만 적재(load)한다.
+      # 검증에 실패하면 Docker Hub에는 아무것도 올라가지 않는다.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # DAST: 실제로 컨테이너를 띄워 동작을 확인한다.
+      # GET /api/posts는 SecurityConfig에서 permitAll이고 DB를 조회하므로,
+      # 200이 돌아오면 "기동 + 시큐리티 + DB 연결"이 한 번에 검증된다.
+      - name: Smoke test running container
+        run: |
+          docker run -d --name gh-backend-ci --network host \
+            -e DB_URL=jdbc:postgresql://localhost:5432/duo \
+            -e DB_USERNAME=duo \
+            -e DB_PASSWORD=ci-local-password \
+            -e JWT_SECRET=ci-only-throwaway-secret-key-do-not-use-in-prod \
+            ${{ env.IMAGE_NAME }}:ci
+
+          ok=0
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/posts || echo 000)
+            if [ "${code}" = "200" ]; then
+              echo "HTTP 200 - application is up and reached the database"
+              ok=1
+              break
+            fi
+            echo "waiting... (attempt ${i}, last code=${code})"
+            sleep 2
+          done
+
+          if [ "${ok}" != "1" ]; then
+            echo "::error::Application did not return HTTP 200 within 60s"
+            docker logs --tail=200 gh-backend-ci
+            exit 1
+          fi
+
+      - name: Clean up container
+        if: always()
+        run: docker rm -f gh-backend-ci || true
+
+  # ---------------------------------------------------------------
+  # [배포] develop merge 이후에만 실행
+  # 위 두 게이트를 모두 통과한 커밋만 Docker Hub로 나간다.
+  # image-check가 캐시를 채워두므로 여기서의 build는 대부분 캐시 히트다.
+  # ---------------------------------------------------------------
+  publish:
+    name: publish (push to Docker Hub)
+    needs: [verify, image-check]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 배포 대상은 x86 서버 기준이므로 단일 arch로 빌드한다.
+      # ARM 서버로 옮기게 되면 platforms에 linux/arm64를 추가한다.
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:develop
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Show pull command
+        run: |
+          echo "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:develop"
+          echo "docker run -d -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:develop"
