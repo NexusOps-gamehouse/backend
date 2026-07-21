@@ -4,8 +4,9 @@ server:
 spring:
   config:
     import:
-      - optional:file:.env[.properties]
-      - optional:file:../.env[.properties]
+      - optional:classpath:application-secret.yml
+      - optional:file:./application-secret.yml
+      - optional:file:../application-secret.yml
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/duo}
     username: ${DB_USERNAME:duo}
@@ -25,3 +26,4 @@ jwt:
 
 app:
   upload-dir: ${UPLOAD_DIR:./uploads}
+  cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
