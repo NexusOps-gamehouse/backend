@@ -2,6 +2,7 @@
 build/
 .gradle/
 bin/
+out/
 
 # 로컬 시크릿 (컨테이너는 환경변수로 주입받음 → 이미지에 포함 금지)
 src/main/resources/application-secret.yml
