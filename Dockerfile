@@ -8,9 +8,12 @@ COPY gradlew settings.gradle build.gradle ./
 COPY gradle ./gradle
 RUN chmod +x gradlew
 
+# 의존성만 먼저 받아 별도 레이어로 캐시. src와 분리 → 소스만 바뀌면 이 레이어 재사용.
+# (캐시 마운트 대신 레이어라 CI의 cache-from: type=gha 로 런 간 유지됨)
+RUN ./gradlew --no-daemon dependencies
+
 COPY src ./src
-RUN --mount=type=cache,target=/root/.gradle \
-    ./gradlew --no-daemon clean bootJar
+RUN ./gradlew --no-daemon clean bootJar
 RUN cp build/libs/*.jar /app/app.jar && mkdir -p /out/uploads
 
 # 최소 JRE 생성. 새 의존성이 다른 JDK 모듈을 요구하면 여기 추가 (빠지면 런타임 NoClassDefFound)
