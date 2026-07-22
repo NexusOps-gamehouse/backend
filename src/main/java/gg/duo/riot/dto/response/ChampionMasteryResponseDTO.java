@@ -10,7 +10,7 @@ public class ChampionMasteryResponseDTO {
     private long championId;
 
     @JsonProperty("championLevel")
-    private int chmapionMasteryLevel;
+    private int championMasteryLevel;
 
     @JsonProperty("championPoints")
     private int championMasteryPoints;
