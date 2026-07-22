@@ -3,24 +3,28 @@ package gg.duo.service;
 import gg.duo.dto.AuthDtos.ProfileUpdateRequest;
 import gg.duo.dto.UserDto;
 import gg.duo.entity.User;
+import gg.duo.entity.UserChampionMastery;
+import gg.duo.repository.UserChampionMasteryRepository;
 import gg.duo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
-    // private final RiotService riotService; // <--- 팀원이 RiotService를 만들 때까지 잠시 주석 처리
+    private final UserChampionMasteryRepository masteryRepository;
 
     @Transactional(readOnly = true)
     public UserDto me(Long userId) {
         return UserDto.from(userRepository.findById(userId).orElseThrow());
     }
 
-    /** 타 유저 프로필 조회 (신청자/작성자 프로필 보기) */
     @Transactional(readOnly = true)
     public UserDto get(Long userId) {
         return UserDto.from(userRepository.findById(userId).orElseThrow());
@@ -41,9 +45,27 @@ public class UserService {
         user.setPlayStyle(req.playStyle());
         user.setPosition(req.position());
         user.setMic(req.mic());
+        user.setTier(req.tier());
         user.setPlayTimes(req.playTimes());
         user.setGameModes(req.gameModes());
-        user.setRiotNickname(req.riotNickname());
         return UserDto.from(user);
+    }
+
+    /**
+     * 챔피언 숙련도 정보(상위 3개) 동기화/저장
+     */
+    @Transactional
+    public void updateUserMasteries(Long userId, List<UserChampionMastery> newMasteries) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 유저를 찾을 수 없습니다. id=" + userId));
+
+        // 기존 숙련도 정보 삭제 후 새로 저장
+        masteryRepository.deleteByUser(user);
+
+        for (UserChampionMastery mastery : newMasteries) {
+            mastery.setUser(user);
+            mastery.setSyncedAt(Instant.now());
+            masteryRepository.save(mastery);
+        }
     }
 }
