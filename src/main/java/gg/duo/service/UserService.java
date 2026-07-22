@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    // private final RiotService riotService; // <--- 팀원이 RiotService를 만들 때까지 잠시 주석 처리
 
     @Transactional(readOnly = true)
     public UserDto me(Long userId) {
@@ -40,7 +41,6 @@ public class UserService {
         user.setPlayStyle(req.playStyle());
         user.setPosition(req.position());
         user.setMic(req.mic());
-        user.setTier(req.tier());
         user.setPlayTimes(req.playTimes());
         user.setGameModes(req.gameModes());
         user.setRiotNickname(req.riotNickname());
