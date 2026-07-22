@@ -6,12 +6,12 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class MasteryResponseDTO {
+public class ChampionMasteryResponseDTO {
     private long championId;
 
     @JsonProperty("championLevel")
-    private int masteryLevel;
+    private int chmapionMasteryLevel;
 
     @JsonProperty("championPoints")
-    private int masteryPoints;
+    private int championMasteryPoints;
 }
