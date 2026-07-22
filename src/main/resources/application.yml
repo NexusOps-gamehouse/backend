@@ -31,4 +31,5 @@ app:
 riot:
   api:
     key: ${RIOT_API_KEY}
-    base-url: https://asia.api.riotgames.com
+    regional-url: https://asia.api.riotgames.com
+    platform-url: https://kr.api.riotgames.com
