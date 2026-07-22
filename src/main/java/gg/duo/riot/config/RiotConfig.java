@@ -8,13 +8,24 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class RiotConfig {
 
-    @Value("${riot.api.base-url}")
-    private String baseUrl;
+    @Value("${riot.api.regional-url}")
+    private String regionalUrl;
 
-    @Bean
-    public WebClient riotWebClient() {
+    @Value("${riot.api.platform-url}")
+    private String platformUrl;
+
+    @Bean("regionalWebClient")
+    public WebClient regionalWebClient() {
         return WebClient.builder()
-                .baseUrl(baseUrl)
+                .baseUrl(regionalUrl)
                 .build();
     }
+
+    @Bean("platformWebClient")
+    public WebClient platformWebClient() {
+        return WebClient.builder()
+                .baseUrl(platformUrl)
+                .build();
+    }
+
 }
