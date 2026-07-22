@@ -1,5 +1,6 @@
 package gg.duo.riot.dto.response;
 
+import gg.duo.riot.dto.ChampionMasteryDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

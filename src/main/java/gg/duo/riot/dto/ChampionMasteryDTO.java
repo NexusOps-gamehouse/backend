@@ -1,4 +1,4 @@
-package gg.duo.riot.dto.response;
+package gg.duo.riot.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
