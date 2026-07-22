@@ -1,4 +1,4 @@
-package gg.duo.riot.dto;
+package gg.duo.riot.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
@@ -6,7 +6,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class MasteryDto{
+public class MasteryResponseDTO {
     private long championId;
 
     @JsonProperty("championLevel")

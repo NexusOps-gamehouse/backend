@@ -1,6 +1,6 @@
 package gg.duo.riot.client;
 
-import gg.duo.riot.dto.response.AccountResponse;
+import gg.duo.riot.dto.response.AccountResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -15,7 +15,7 @@ public class RiotApiClient {
     @Value("${riot.api.key}")
     private String apiKey;
 
-    public AccountResponse getAccount(String gameName, String tagLine) {
+    public AccountResponseDTO getAccount(String gameName, String tagLine) {
 
         return riotWebClient.get()
                 .uri(uriBuilder -> uriBuilder
@@ -23,7 +23,7 @@ public class RiotApiClient {
                         .build(gameName, tagLine))
                 .header("X-Riot-Token", apiKey)
                 .retrieve()
-                .bodyToMono(AccountResponse.class)
+                .bodyToMono(AccountResponseDTO.class)
                 .block();
     }
 }

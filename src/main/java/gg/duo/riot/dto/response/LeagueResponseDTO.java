@@ -1,11 +1,11 @@
-package gg.duo.riot.dto;
+package gg.duo.riot.dto.response;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class LeagueDto{
+public class LeagueResponseDTO {
     private String tier;         // DIAMOND, PLATINUM, GOLD 등
     private String rank;         // I, II, III, IV
     private int leaguePoints;    // LP 점수
