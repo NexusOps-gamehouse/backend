@@ -1,4 +1,4 @@
-package gg.duo.dto;
+package gg.duo.riot.dto;
 
 import lombok.Getter;
 import lombok.Setter;
