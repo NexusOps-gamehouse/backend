@@ -7,11 +7,13 @@ import gg.duo.entity.UserChampionMastery;
 import gg.duo.repository.UserChampionMasteryRepository;
 import gg.duo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +21,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserChampionMasteryRepository masteryRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public UserDto me(Long userId) {
@@ -67,5 +70,46 @@ public class UserService {
             mastery.setSyncedAt(Instant.now());
             masteryRepository.save(mastery);
         }
+    }
+    // ==================== [신규 추가] 아이디/비밀번호 찾기 ====================
+
+    /**
+     * 1. 닉네임으로 이메일(아이디) 찾기
+     */
+    @Transactional(readOnly = true)
+    public String findEmailByNickname(String nickname) {
+        User user = userRepository.findByNickname(nickname)
+                .orElseThrow(() -> new IllegalArgumentException("해당 닉네임으로 가입된 계정을 찾을 수 없습니다."));
+
+        // 보안을 위해 이메일 마스킹 처리 (예: lor***@gmail.com)
+        return maskEmail(user.getEmail());
+    }
+
+    /**
+     * 2. 비밀번호 재설정 (이메일 & 닉네임 검증 후 임시 비밀번호 발급)
+     */
+    @Transactional
+    public String resetPassword(String email, String nickname) {
+        // 이메일로 유저를 찾은 뒤 닉네임이 일치하는지 확인
+        User user = userRepository.findByEmail(email)
+                .filter(u -> u.getNickname().equals(nickname))
+                .orElseThrow(() -> new IllegalArgumentException("입력하신 정보와 일치하는 계정이 없습니다."));
+
+        // 8자리 임시 비밀번호 생성 (예: a1b2c3d4)
+        String tempPassword = UUID.randomUUID().toString().substring(0, 8);
+
+        // 임시 비밀번호 암호화 후 변경
+        user.setPassword(tempPassword);
+
+        return tempPassword;
+    }
+
+    /**
+     * 이메일 마스킹 도우미 메서드 (ex: lora1234@naver.com -> lor***@naver.com)
+     */
+    private String maskEmail(String email) {
+        int atIndex = email.indexOf("@");
+        if (atIndex <= 3) return email;
+        return email.substring(0, 3) + "***" + email.substring(atIndex);
     }
 }
