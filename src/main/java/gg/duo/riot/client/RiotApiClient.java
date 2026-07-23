@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 public class RiotApiClient {
 
     private final WebClient regionalWebClient;

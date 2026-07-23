@@ -51,7 +51,6 @@ public class AuthService {
         user.setTier(form.getTier());
         user.setPlayTimes(form.getPlayTimes());
         user.setGameModes(form.getGameModes());
-        user.setRiotNickname(form.getRiotNickname());
         user.setLastActiveAt(Instant.now());
         userRepository.save(user);
 
