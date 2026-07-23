@@ -30,6 +30,6 @@ app:
 
 riot:
   api:
-    key: ${RIOT_API_KEY}
+    key: ${RIOT_API_KEY:dummy_key}
     regional-url: https://asia.api.riotgames.com
     platform-url: https://kr.api.riotgames.com
