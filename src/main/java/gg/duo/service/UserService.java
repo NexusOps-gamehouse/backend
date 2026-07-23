@@ -7,7 +7,6 @@ import gg.duo.entity.UserChampionMastery;
 import gg.duo.repository.UserChampionMasteryRepository;
 import gg.duo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +20,6 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserChampionMasteryRepository masteryRepository;
-    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public UserDto me(Long userId) {
