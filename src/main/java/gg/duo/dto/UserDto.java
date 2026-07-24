@@ -5,6 +5,8 @@ import gg.duo.entity.User;
 public record UserDto(
         Long id,
         String email,
+        String name,
+        String phone,
         String nickname,
         String profileImageUrl,
         String gender,
@@ -25,6 +27,8 @@ public record UserDto(
         return new UserDto(
                 u.getId(),
                 u.getEmail(),
+                u.getName(),
+                u.getPhone(),
                 u.getNickname(),
                 u.getProfileImageUrl(),
                 u.getGender(),

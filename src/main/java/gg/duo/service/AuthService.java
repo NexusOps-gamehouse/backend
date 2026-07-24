@@ -40,6 +40,10 @@ public class AuthService {
         User user = new User();
         user.setEmail(form.getEmail());
         user.setPassword(passwordEncoder.encode(form.getPassword()));
+        user.setName(form.getName());
+        user.setPhone(form.getPhone());
+        user.setGameName(form.getGameName());
+        user.setTagLine(form.getTagLine());
         user.setNickname(form.getNickname());
         user.setProfileImageUrl(fileStorageService.store(image));
         user.setGender(form.getGender());
