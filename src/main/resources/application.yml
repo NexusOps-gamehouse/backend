@@ -8,10 +8,9 @@ spring:
       - optional:file:./application-secret.yml
       - optional:file:../application-secret.yml
   datasource:
-    url: jdbc:mysql://localhost:3306/duo?useSSL=false&serverTimezone=Asia/Seoul
-    username: root
-    password: 본인_DB_비밀번호
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/duo}
+    username: ${DB_USERNAME:duo}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
@@ -22,7 +21,7 @@ spring:
       max-request-size: 10MB
 
 jwt:
-  secret: my-duo-project-jwt-secret-key-for-local-development-environment-12345
+  secret: ${JWT_SECRET}
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 app:
