@@ -2,6 +2,8 @@ package gg.duo.controller;
 
 import gg.duo.dto.AuthDtos.ProfileUpdateRequest;
 import gg.duo.dto.UserDto;
+import gg.duo.riot.dto.RiotSyncRequestDTO;
+import gg.duo.riot.dto.response.RiotProfileResponseDTO;
 import gg.duo.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -52,4 +54,22 @@ public class UserController {
             String email,
             String nickname
     ) {}
+
+    @PostMapping("/riot/sync")
+    public ResponseEntity<RiotProfileResponseDTO> syncRiotProfile(
+            Authentication authentication,
+            @RequestBody RiotSyncRequestDTO request
+    ) {
+
+        Long userId = (Long) authentication.getPrincipal();
+
+        RiotProfileResponseDTO response =
+                userService.syncRiotProfile(
+                        userId,
+                        request.gameName(),
+                        request.tagLine()
+                );
+
+        return ResponseEntity.ok(response);
+    }
 }

@@ -2,11 +2,15 @@ package gg.duo.service;
 
 import gg.duo.dto.AuthDtos.ProfileUpdateRequest;
 import gg.duo.dto.UserDto;
+import gg.duo.riot.dto.ChampionMasteryDTO;
+import gg.duo.riot.dto.response.RiotProfileResponseDTO;
 import gg.duo.entity.User;
 import gg.duo.entity.UserChampionMastery;
 import gg.duo.repository.UserChampionMasteryRepository;
 import gg.duo.repository.UserRepository;
+import gg.duo.riot.service.RiotService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +24,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserChampionMasteryRepository masteryRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final RiotService riotService;
 
     @Transactional(readOnly = true)
     public UserDto me(Long userId) {
@@ -46,28 +52,85 @@ public class UserService {
         user.setPlayStyle(req.playStyle());
         user.setPosition(req.position());
         user.setMic(req.mic());
-        user.setTier(req.tier());
         user.setPlayTimes(req.playTimes());
         user.setGameModes(req.gameModes());
         return UserDto.from(user);
+    }
+
+    @Transactional
+    public RiotProfileResponseDTO syncRiotProfile(Long userId,
+                                                  String gameName,
+                                                  String tagLine) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 유저를 찾을 수 없습니다. id=" + userId));
+
+
+        // Riot API 조회
+        RiotProfileResponseDTO profile =
+                riotService.fetchProfile(gameName, tagLine);
+
+
+        User exist = userRepository.findByPuuid(profile.getPuuid())
+                .orElse(null);
+
+        if (exist != null && !exist.getId().equals(user.getId())) {
+            throw new IllegalArgumentException("이미 다른 계정과 연동된 Riot 계정입니다.");
+        }
+
+        // User 엔티티 업데이트
+        user.updateRiotInfo(
+                profile.getPuuid(),
+                profile.getGameName(),
+                profile.getTagLine(),
+                profile.getProfileIconId(),
+                profile.getSummonerLevel(),
+                profile.getTier(),
+                profile.getRank(),
+                profile.getLeaguePoints()
+        );
+
+        // Champion Mastery 엔티티 변환
+        List<UserChampionMastery> masteries =
+                profile.getChampionMasteries()
+                        .stream()
+                        .map(dto ->
+                                UserChampionMastery.builder()
+                                        .ranking(dto.getRanking())
+                                        .championId(dto.getChampionId())
+                                        .masteryLevel(dto.getChampionMasteryLevel())
+                                        .masteryPoints(dto.getChampionMasteryPoints())
+                                        .game("LOL")
+                                        .build()
+                        )
+                        .toList();
+
+        updateUserMasteries(user, masteries);
+
+        return profile;
     }
 
     /**
      * 챔피언 숙련도 정보(상위 3개) 동기화/저장
      */
     @Transactional
-    public void updateUserMasteries(Long userId, List<UserChampionMastery> newMasteries) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 유저를 찾을 수 없습니다. id=" + userId));
+    public void updateUserMasteries(User user, List<UserChampionMastery> newMasteries) {
 
-        // 기존 숙련도 정보 삭제 후 새로 저장
+
+        // 기존 숙련도 삭제
         masteryRepository.deleteByUser(user);
 
-        for (UserChampionMastery mastery : newMasteries) {
+        Instant now = Instant.now();
+
+        // 연관관계 및 동기화 시간 설정
+        newMasteries.forEach(mastery -> {
             mastery.setUser(user);
-            mastery.setSyncedAt(Instant.now());
-            masteryRepository.save(mastery);
-        }
+            mastery.setSyncedAt(now);
+        });
+
+        // 한 번에 저장
+        masteryRepository.saveAll(newMasteries);
     }
     // ==================== [신규 추가] 아이디/비밀번호 찾기 ====================
 
@@ -97,7 +160,7 @@ public class UserService {
         String tempPassword = UUID.randomUUID().toString().substring(0, 8);
 
         // 임시 비밀번호 암호화 후 변경
-        user.setPassword(tempPassword);
+        user.setPassword(passwordEncoder.encode(tempPassword));
 
         return tempPassword;
     }

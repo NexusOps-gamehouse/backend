@@ -26,7 +26,7 @@ public class UserChampionMastery {
     private User user;
 
     private String game;         // 게임 종류 (LOL, VALORANT 등)
-    private Integer championId;  // 챔피언 ID
+    private Long championId;  // 챔피언 ID (Integer에서 Long으로 수정)
     private Integer masteryLevel;// 숙련도 레벨
     private Integer masteryPoints;// 숙련도 점수
     private Integer ranking;     // 숙련도 순위 (1~3)
