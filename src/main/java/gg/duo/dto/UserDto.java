@@ -2,12 +2,11 @@ package gg.duo.dto;
 
 import gg.duo.entity.User;
 
-import java.time.Duration;
-import java.time.Instant;
-
 public record UserDto(
         Long id,
         String email,
+        String name,
+        String phone,
         String nickname,
         String profileImageUrl,
         String gender,
@@ -15,19 +14,35 @@ public record UserDto(
         String game,
         String playStyle,
         String position,
-        boolean mic,
+        Boolean mic,
         String tier,
         String playTimes,
         String gameModes,
-        String riotNickname,
-        boolean online
+        String puuid,
+        String gameName,
+        String tagLine
 ) {
     public static UserDto from(User u) {
-        boolean online = u.getLastActiveAt() != null
-                && u.getLastActiveAt().isAfter(Instant.now().minus(Duration.ofMinutes(5)));
-        return new UserDto(u.getId(), u.getEmail(), u.getNickname(), u.getProfileImageUrl(),
-                u.getGender(), u.getAgeRange(), u.getGame(), u.getPlayStyle(), u.getPosition(),
-                u.isMic(), u.getTier(), u.getPlayTimes(), u.getGameModes(), u.getRiotNickname(),
-                online);
+        if (u == null) return null;
+        return new UserDto(
+                u.getId(),
+                u.getEmail(),
+                u.getName(),
+                u.getPhone(),
+                u.getNickname(),
+                u.getProfileImageUrl(),
+                u.getGender(),
+                u.getAgeRange(),
+                u.getGame(),
+                u.getPlayStyle(),
+                u.getPosition(),
+                u.getMic(), // isMic() -> getMic()로 변경
+                u.getTier(),
+                u.getPlayTimes(),
+                u.getGameModes(),
+                u.getPuuid(),
+                u.getGameName(),
+                u.getTagLine()
+        );
     }
 }
