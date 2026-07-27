@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -37,22 +39,23 @@ public class UserController {
 
     // 1. 닉네임으로 아이디(이메일) 찾기 API
     @GetMapping("/find-email")
-    public ResponseEntity<String> findEmail(@RequestParam String nickname) {
+    public ResponseEntity<Map<String, String>> findEmail(@RequestParam String nickname) {
         String maskedEmail = userService.findEmailByNickname(nickname);
-        return ResponseEntity.ok(maskedEmail);
+        return ResponseEntity.ok(Map.of("email", maskedEmail));
     }
 
-    // 2. 비밀번호 재설정 (임시 비밀번호 발급) API
+    // 2. 비밀번호 재설정 API
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest req) {
-        String tempPassword = userService.resetPassword(req.email(), req.nickname());
-        return ResponseEntity.ok(tempPassword);
+    public ResponseEntity<Map<String, String>> resetPassword(@RequestBody ResetPasswordRequest req) {
+        userService.resetPassword(req.email(), req.nickname(), req.newPassword());
+        return ResponseEntity.ok(Map.of("message", "비밀번호가 변경되었습니다."));
     }
 
     // ===== 비밀번호 재설정 요청 DTO =====
     public record ResetPasswordRequest(
             String email,
-            String nickname
+            String nickname,
+            String newPassword
     ) {}
 
     @PostMapping("/riot/sync")

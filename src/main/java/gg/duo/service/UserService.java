@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -146,23 +145,19 @@ public class UserService {
         return maskEmail(user.getEmail());
     }
 
-    /**
-     * 2. 비밀번호 재설정 (이메일 & 닉네임 검증 후 임시 비밀번호 발급)
-     */
+    /** 2. 비밀번호 재설정 (이메일 & 닉네임 검증 후 새 비밀번호 저장) */
     @Transactional
-    public String resetPassword(String email, String nickname) {
+    public void resetPassword(String email, String nickname, String newPassword) {
+        if (newPassword == null || newPassword.length() < 4) {
+            throw new IllegalArgumentException("비밀번호는 4자 이상이어야 합니다.");
+        }
+
         // 이메일로 유저를 찾은 뒤 닉네임이 일치하는지 확인
         User user = userRepository.findByEmail(email)
                 .filter(u -> u.getNickname().equals(nickname))
                 .orElseThrow(() -> new IllegalArgumentException("입력하신 정보와 일치하는 계정이 없습니다."));
 
-        // 8자리 임시 비밀번호 생성 (예: a1b2c3d4)
-        String tempPassword = UUID.randomUUID().toString().substring(0, 8);
-
-        // 임시 비밀번호 암호화 후 변경
-        user.setPassword(passwordEncoder.encode(tempPassword));
-
-        return tempPassword;
+        user.setPassword(passwordEncoder.encode(newPassword));
     }
 
     /**
