@@ -9,7 +9,7 @@ public class AuthDtos {
         private String email;
         private String password;
         private String name;
-        private String phone;
+        private String phoneNumber;
         private String nickname;
         private String gender;
         private String ageRange;
@@ -21,8 +21,6 @@ public class AuthDtos {
         private String playTimes;    // 콤마 구분
         private String gameModes;    // 콤마 구분
         private String riotNickname;
-        private String gameName;
-        private String tagLine;
     }
 
     public record LoginRequest(String email, String password) {}
@@ -33,4 +31,12 @@ public class AuthDtos {
             String nickname, String gender, String ageRange, String game,
             String playStyle, String position, boolean mic, String tier,
             String playTimes, String gameModes, String riotNickname) {}
+
+    // 아이디 찾기 요청/응답 DTO
+    public record FindIdRequest(String name, String phoneNumber) {}
+    public record FindIdResponse(String email) {} // 마스킹된 이메일 반환
+
+    // 비밀번호 재설정 요청/응답 DTO
+    public record FindPasswordRequest(String name, String phoneNumber, String email) {}
+    public record FindPasswordResponse(String tempPassword) {}
 }
