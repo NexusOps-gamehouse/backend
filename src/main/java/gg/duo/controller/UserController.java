@@ -33,17 +33,11 @@ public class UserController {
         return userService.get(id);
     }
 
-    /** [이메일 찾기 1] 이름 + 전화번호 기준 */
-    @GetMapping(value = "/find-email", params = {"name", "phone"})
-    public Map<String, String> findEmailByNameAndPhone(@RequestParam String name, @RequestParam String phone) {
+    /** [이메일 찾기] 이름 + 전화번호 기준 */
+    @GetMapping("/find-email")
+    public ResponseEntity<Map<String, String>> findEmail(@RequestParam String name,
+                                                         @RequestParam String phone) {
         String maskedEmail = userService.findEmailByNameAndPhone(name, phone);
-        return Map.of("email", maskedEmail);
-    }
-
-    /** [이메일 찾기 2] 닉네임 기준 */
-    @GetMapping(value = "/find-email", params = "nickname")
-    public ResponseEntity<Map<String, String>> findEmailByNickname(@RequestParam String nickname) {
-        String maskedEmail = userService.findEmailByNickname(nickname);
         return ResponseEntity.ok(Map.of("email", maskedEmail));
     }
 

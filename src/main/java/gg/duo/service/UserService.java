@@ -64,17 +64,6 @@ public class UserService {
         return maskEmail(user.getEmail());
     }
 
-    /** [이메일 찾기] 닉네임 기준 */
-    @Transactional(readOnly = true)
-    public String findEmailByNickname(String nickname) {
-        if (nickname == null || nickname.isBlank()) {
-            throw new IllegalArgumentException("닉네임을 입력해주세요.");
-        }
-        User user = userRepository.findByNickname(nickname)
-                .orElseThrow(() -> new IllegalArgumentException("해당 닉네임의 사용자를 찾을 수 없습니다."));
-        return maskEmail(user.getEmail());
-    }
-
     /** [비밀번호 재설정] 이메일 + 이름 + 전화번호로 본인 확인 후 새 비밀번호로 변경 */
     @Transactional
     public void resetPassword(String email, String name, String phone,
