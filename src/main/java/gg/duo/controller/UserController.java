@@ -33,18 +33,25 @@ public class UserController {
         return userService.get(id);
     }
 
-    /** [아이디 찾기] 본명과 전화번호로 이메일 조회 */
-    @GetMapping("/find-email")
-    public Map<String, String> findEmail(@RequestParam String name, @RequestParam String phone) {
+    /** [이메일 찾기 1] 이름 + 전화번호 기준 */
+    @GetMapping(value = "/find-email", params = {"name", "phone"})
+    public Map<String, String> findEmailByNameAndPhone(@RequestParam String name, @RequestParam String phone) {
         String maskedEmail = userService.findEmailByNameAndPhone(name, phone);
         return Map.of("email", maskedEmail);
     }
 
-    /** [비밀번호 재설정] */
+    /** [이메일 찾기 2] 닉네임 기준 (팀원 기존 코드) */
+    @GetMapping(value = "/find-email", params = "nickname")
+    public ResponseEntity<Map<String, String>> findEmailByNickname(@RequestParam String nickname) {
+        String maskedEmail = userService.findEmailByNickname(nickname);
+        return ResponseEntity.ok(Map.of("email", maskedEmail));
+    }
+
+    /** 비밀번호 재설정 (이름+전화번호 기준) */
     @PostMapping("/reset-password")
     public ResponseEntity<Map<String, String>> resetPassword(@RequestBody ResetPasswordRequest req) {
         userService.resetPassword(req.email(), req.name(), req.phone(), req.newPassword());
-        return ResponseEntity.ok(Map.of("message", "비밀번호가 성공적으로 변경되었습니다."));
+        return ResponseEntity.ok(Map.of("message", "비밀번호가 변경되었습니다."));
     }
 
     public record ResetPasswordRequest(
@@ -52,5 +59,25 @@ public class UserController {
             String name,
             String phone,
             String newPassword
+    ) {}
+
+    /** 라이엇 프로필 동기화 */
+    @PostMapping("/riot/sync")
+    public ResponseEntity<Object> syncRiotProfile(
+            Authentication authentication,
+            @RequestBody RiotSyncRequestDTO request
+    ) {
+        Long userId = (Long) authentication.getPrincipal();
+        Object response = userService.syncRiotProfile(
+                userId,
+                request.gameName(),
+                request.tagLine()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    public record RiotSyncRequestDTO(
+            String gameName,
+            String tagLine
     ) {}
 }
