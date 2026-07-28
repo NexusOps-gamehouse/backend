@@ -25,6 +25,6 @@ public class ChatWsController {
                      Principal principal) {
         Long senderId = Long.parseLong(principal.getName());
         MessageDto saved = chatService.saveMessage(roomId, senderId, request.content());
-        messagingTemplate.convertAndSend("/topic/rooms/" + roomId, saved);
+        messagingTemplate.convertAndSend("/topic/rooms." + roomId, saved);
     }
 }

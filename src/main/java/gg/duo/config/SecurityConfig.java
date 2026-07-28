@@ -36,11 +36,28 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/ws/**", "/uploads/**").permitAll()
-                        // 목록·상세는 비로그인 허용 ("/api/posts/*"는 한 세그먼트만 매칭 — applications 하위 경로는 인증 필요)
-                        .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/*").permitAll()
-                        .anyRequest().authenticated())
+
+                        // 로그인 없이 접근 가능한 API
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/users/find-email",
+                                "/api/users/reset-password",
+                                "/ws/**",
+                                "/uploads/**"
+                        ).permitAll()
+
+                        // 게시글 조회는 로그인 없이 허용
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/posts",
+                                "/api/posts/*"
+                        ).permitAll()
+
+                        // 나머지는 로그인 필요
+                        .anyRequest().authenticated()
+                )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 
@@ -51,8 +68,10 @@ public class SecurityConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 

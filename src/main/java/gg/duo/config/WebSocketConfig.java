@@ -2,6 +2,7 @@ package gg.duo.config;
 
 import gg.duo.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -25,9 +26,33 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtTokenProvider jwtTokenProvider;
 
+    // application.yml 의 rabbitmq.* 값을 주입받는다.
+    @Value("${rabbitmq.host}")
+    private String relayHost;
+
+    @Value("${rabbitmq.port}")
+    private int relayPort;
+
+    @Value("${rabbitmq.username}")
+    private String relayUsername;
+
+    @Value("${rabbitmq.password}")
+    private String relayPassword;
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/topic");
+        // 기존: registry.enableSimpleBroker("/topic");
+        // 변경: 서버 메모리 대신 외부 RabbitMQ(STOMP)로 메시지 전달을 위임한다.
+        registry.enableStompBrokerRelay("/topic")
+                .setRelayHost(relayHost)
+                .setRelayPort(relayPort)
+                // 클라이언트 세션이 브로커에 연결할 때 쓰는 계정
+                .setClientLogin(relayUsername)
+                .setClientPasscode(relayPassword)
+                // 애플리케이션(시스템)이 브로커에 연결할 때 쓰는 계정
+                .setSystemLogin(relayUsername)
+                .setSystemPasscode(relayPassword);
+
         registry.setApplicationDestinationPrefixes("/app");
     }
 
@@ -40,6 +65,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
+        // JWT 인증 인터셉터 — 브로커 교체와 무관하며 그대로 유지된다.
         registration.interceptors(new ChannelInterceptor() {
             @Override
             public Message<?> preSend(Message<?> message, MessageChannel channel) {

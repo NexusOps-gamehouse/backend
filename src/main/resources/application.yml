@@ -33,3 +33,10 @@ riot:
     key: ${RIOT_API_KEY:dummy_key}
     regional-url: https://asia.api.riotgames.com
     platform-url: https://kr.api.riotgames.com
+
+    
+rabbitmq:
+  host: ${RABBITMQ_HOST:localhost}
+  port: ${RABBITMQ_STOMP_PORT:61613}
+  username: ${RABBITMQ_USERNAME:appuser}
+  password: ${RABBITMQ_PASSWORD:apppass}
