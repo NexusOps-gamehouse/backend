@@ -50,7 +50,8 @@ public class UserController {
     /** 비밀번호 재설정 */
     @PostMapping("/reset-password")
     public ResponseEntity<Map<String, String>> resetPassword(@RequestBody ResetPasswordRequest req) {
-        userService.resetPassword(req.email(), req.name(), req.phone(), req.newPassword());
+        userService.resetPassword(req.email(), req.name(), req.phone(),
+                req.newPassword(), req.newPasswordConfirm());
         return ResponseEntity.ok(Map.of("message", "비밀번호가 변경되었습니다."));
     }
 
@@ -58,7 +59,8 @@ public class UserController {
             String email,
             String name,
             String phone,
-            String newPassword
+            String newPassword,
+            String newPasswordConfirm
     ) {}
 
     /** 라이엇 프로필 동기화 */
