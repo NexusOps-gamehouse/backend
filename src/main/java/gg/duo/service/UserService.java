@@ -21,7 +21,7 @@ public class UserService {
         return UserDto.from(userRepository.findById(userId).orElseThrow());
     }
 
-    /** 타 유저 프로필 조회 (신청자/작성자 프로필 보기) */
+    /** 타 유저 프로필 조회 */
     @Transactional(readOnly = true)
     public UserDto get(Long userId) {
         return UserDto.from(userRepository.findById(userId).orElseThrow());
@@ -49,9 +49,7 @@ public class UserService {
         return UserDto.from(user);
     }
 
-    /**
-     * [아이디 찾기] 본명과 전화번호로 이메일 조회 및 마스킹
-     */
+    /** [이메일 찾기] 이름 + 전화번호 기준 */
     @Transactional(readOnly = true)
     public String findEmailByNameAndPhone(String name, String phone) {
         if (name == null || name.isBlank()) throw new IllegalArgumentException("이름을 입력해주세요.");
@@ -66,9 +64,18 @@ public class UserService {
         return maskEmail(user.getEmail());
     }
 
-    /**
-     * [비밀번호 재설정] 이메일, 이름, 전화번호가 일치하면 새 비밀번호로 변경
-     */
+    /** [이메일 찾기] 닉네임 기준 */
+    @Transactional(readOnly = true)
+    public String findEmailByNickname(String nickname) {
+        if (nickname == null || nickname.isBlank()) {
+            throw new IllegalArgumentException("닉네임을 입력해주세요.");
+        }
+        User user = userRepository.findByNickname(nickname)
+                .orElseThrow(() -> new IllegalArgumentException("해당 닉네임의 사용자를 찾을 수 없습니다."));
+        return maskEmail(user.getEmail());
+    }
+
+    /** [비밀번호 재설정] 이메일, 이름, 전화번호 기준 */
     @Transactional
     public void resetPassword(String email, String name, String phone, String newPassword) {
         String cleanPhone = phone.replaceAll("-", "");
@@ -78,6 +85,15 @@ public class UserService {
                         .orElseThrow(() -> new IllegalArgumentException("일치하는 회원 정보를 찾을 수 없습니다.")));
 
         user.setPassword(passwordEncoder.encode(newPassword));
+    }
+
+    /** [라이엇 프로필 동기화] */
+    @Transactional
+    public UserDto syncRiotProfile(Long userId, String gameName, String tagLine) {
+        User user = userRepository.findById(userId).orElseThrow();
+        user.setGameName(gameName);
+        user.setTagLine(tagLine);
+        return UserDto.from(user);
     }
 
     private String maskEmail(String email) {
