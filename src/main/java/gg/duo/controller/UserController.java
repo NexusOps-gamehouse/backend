@@ -2,8 +2,6 @@ package gg.duo.controller;
 
 import gg.duo.dto.AuthDtos.ProfileUpdateRequest;
 import gg.duo.dto.UserDto;
-import gg.duo.riot.dto.RiotSyncRequestDTO;
-import gg.duo.riot.dto.response.RiotProfileResponseDTO;
 import gg.duo.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,14 +19,12 @@ public class UserController {
 
     @GetMapping("/me")
     public UserDto me(Authentication auth) {
-        Long userId = (Long) auth.getPrincipal();
-        return userService.me(userId);
+        return userService.me((Long) auth.getPrincipal());
     }
 
     @PutMapping("/me")
     public UserDto update(Authentication auth, @RequestBody ProfileUpdateRequest req) {
-        Long userId = (Long) auth.getPrincipal();
-        return userService.updateProfile(userId, req);
+        return userService.updateProfile((Long) auth.getPrincipal(), req);
     }
 
     /** 타 유저 프로필 조회 */
@@ -37,42 +33,51 @@ public class UserController {
         return userService.get(id);
     }
 
-    // 1. 닉네임으로 아이디(이메일) 찾기 API
-    @GetMapping("/find-email")
-    public ResponseEntity<Map<String, String>> findEmail(@RequestParam String nickname) {
+    /** [이메일 찾기 1] 이름 + 전화번호 기준 */
+    @GetMapping(value = "/find-email", params = {"name", "phone"})
+    public Map<String, String> findEmailByNameAndPhone(@RequestParam String name, @RequestParam String phone) {
+        String maskedEmail = userService.findEmailByNameAndPhone(name, phone);
+        return Map.of("email", maskedEmail);
+    }
+
+    /** [이메일 찾기 2] 닉네임 기준 */
+    @GetMapping(value = "/find-email", params = "nickname")
+    public ResponseEntity<Map<String, String>> findEmailByNickname(@RequestParam String nickname) {
         String maskedEmail = userService.findEmailByNickname(nickname);
         return ResponseEntity.ok(Map.of("email", maskedEmail));
     }
 
-    // 2. 비밀번호 재설정 API
+    /** 비밀번호 재설정 */
     @PostMapping("/reset-password")
     public ResponseEntity<Map<String, String>> resetPassword(@RequestBody ResetPasswordRequest req) {
-        userService.resetPassword(req.email(), req.nickname(), req.newPassword());
+        userService.resetPassword(req.email(), req.name(), req.phone(), req.newPassword());
         return ResponseEntity.ok(Map.of("message", "비밀번호가 변경되었습니다."));
     }
 
-    // ===== 비밀번호 재설정 요청 DTO =====
     public record ResetPasswordRequest(
             String email,
-            String nickname,
+            String name,
+            String phone,
             String newPassword
     ) {}
 
+    /** 라이엇 프로필 동기화 */
     @PostMapping("/riot/sync")
-    public ResponseEntity<RiotProfileResponseDTO> syncRiotProfile(
+    public ResponseEntity<UserDto> syncRiotProfile(
             Authentication authentication,
             @RequestBody RiotSyncRequestDTO request
     ) {
-
         Long userId = (Long) authentication.getPrincipal();
-
-        RiotProfileResponseDTO response =
-                userService.syncRiotProfile(
-                        userId,
-                        request.gameName(),
-                        request.tagLine()
-                );
-
+        UserDto response = userService.syncRiotProfile(
+                userId,
+                request.gameName(),
+                request.tagLine()
+        );
         return ResponseEntity.ok(response);
     }
+
+    public record RiotSyncRequestDTO(
+            String gameName,
+            String tagLine
+    ) {}
 }

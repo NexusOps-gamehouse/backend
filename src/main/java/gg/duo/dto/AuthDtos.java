@@ -8,8 +8,8 @@ public class AuthDtos {
     public static class SignupForm {
         private String email;
         private String password;
-        private String name;
-        private String phone;
+        private String name;        // 회원가입 및 아이디 찾기용
+        private String phone;       // 회원가입 및 아이디 찾기용
         private String nickname;
         private String gender;
         private String ageRange;
@@ -18,11 +18,9 @@ public class AuthDtos {
         private String position;
         private boolean mic;
         private String tier;
-        private String playTimes;    // 콤마 구분
-        private String gameModes;    // 콤마 구분
+        private String playTimes; // 콤마 구분
+        private String gameModes; // 콤마 구분
         private String riotNickname;
-        private String gameName;
-        private String tagLine;
     }
 
     public record LoginRequest(String email, String password) {}

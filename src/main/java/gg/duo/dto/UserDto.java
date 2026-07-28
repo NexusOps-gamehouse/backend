@@ -2,11 +2,12 @@ package gg.duo.dto;
 
 import gg.duo.entity.User;
 
+import java.time.Duration;
+import java.time.Instant;
+
 public record UserDto(
         Long id,
         String email,
-        String name,
-        String phone,
         String nickname,
         String profileImageUrl,
         String gender,
@@ -14,21 +15,22 @@ public record UserDto(
         String game,
         String playStyle,
         String position,
-        Boolean mic,
+        boolean mic,
         String tier,
         String playTimes,
         String gameModes,
+        String riotNickname,
         String puuid,
         String gameName,
-        String tagLine
+        String tagLine,
+        boolean online
 ) {
     public static UserDto from(User u) {
-        if (u == null) return null;
+        boolean online = u.getLastActiveAt() != null
+                && u.getLastActiveAt().isAfter(Instant.now().minus(Duration.ofMinutes(5)));
         return new UserDto(
                 u.getId(),
                 u.getEmail(),
-                u.getName(),
-                u.getPhone(),
                 u.getNickname(),
                 u.getProfileImageUrl(),
                 u.getGender(),
@@ -36,13 +38,15 @@ public record UserDto(
                 u.getGame(),
                 u.getPlayStyle(),
                 u.getPosition(),
-                u.getMic(), // isMic() -> getMic()로 변경
+                u.isMic(),
                 u.getTier(),
                 u.getPlayTimes(),
                 u.getGameModes(),
+                u.getRiotNickname(),
                 u.getPuuid(),
                 u.getGameName(),
-                u.getTagLine()
+                u.getTagLine(),
+                online
         );
     }
 }
