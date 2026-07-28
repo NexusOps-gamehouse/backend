@@ -2,13 +2,12 @@ package gg.duo.controller;
 
 import gg.duo.dto.AuthDtos.ProfileUpdateRequest;
 import gg.duo.dto.UserDto;
-import gg.duo.riot.dto.RiotSyncRequestDTO;
-import gg.duo.riot.dto.response.RiotProfileResponseDTO;
 import gg.duo.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -19,14 +18,12 @@ public class UserController {
 
     @GetMapping("/me")
     public UserDto me(Authentication auth) {
-        Long userId = (Long) auth.getPrincipal();
-        return userService.me(userId);
+        return userService.me((Long) auth.getPrincipal());
     }
 
     @PutMapping("/me")
     public UserDto update(Authentication auth, @RequestBody ProfileUpdateRequest req) {
-        Long userId = (Long) auth.getPrincipal();
-        return userService.updateProfile(userId, req);
+        return userService.updateProfile((Long) auth.getPrincipal(), req);
     }
 
     /** 타 유저 프로필 조회 */
@@ -35,41 +32,13 @@ public class UserController {
         return userService.get(id);
     }
 
-    // 1. 닉네임으로 아이디(이메일) 찾기 API
+    /**
+     * [추가] 이름과 전화번호로 이메일(아이디) 찾기
+     * 요청 예시: GET /api/users/find-email?name=홍길동&phone=010-5531-3930
+     */
     @GetMapping("/find-email")
-    public ResponseEntity<String> findEmail(@RequestParam String nickname) {
-        String maskedEmail = userService.findEmailByNickname(nickname);
-        return ResponseEntity.ok(maskedEmail);
-    }
-
-    // 2. 비밀번호 재설정 (임시 비밀번호 발급) API
-    @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest req) {
-        String tempPassword = userService.resetPassword(req.email(), req.nickname());
-        return ResponseEntity.ok(tempPassword);
-    }
-
-    // ===== 비밀번호 재설정 요청 DTO =====
-    public record ResetPasswordRequest(
-            String email,
-            String nickname
-    ) {}
-
-    @PostMapping("/riot/sync")
-    public ResponseEntity<RiotProfileResponseDTO> syncRiotProfile(
-            Authentication authentication,
-            @RequestBody RiotSyncRequestDTO request
-    ) {
-
-        Long userId = (Long) authentication.getPrincipal();
-
-        RiotProfileResponseDTO response =
-                userService.syncRiotProfile(
-                        userId,
-                        request.gameName(),
-                        request.tagLine()
-                );
-
-        return ResponseEntity.ok(response);
+    public Map<String, String> findEmail(@RequestParam String name, @RequestParam String phone) {
+        String maskedEmail = userService.findEmailByNameAndPhone(name, phone);
+        return Map.of("email", maskedEmail);
     }
 }

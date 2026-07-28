@@ -10,9 +10,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
     boolean existsByNickname(String nickname);
 
-    // 본명 + 전화번호로 유저 조회 (아이디 찾기)
+    // [추가] 이름과 전화번호로 유저 조회
     Optional<User> findByNameAndPhoneNumber(String name, String phoneNumber);
-
-    // 본명 + 전화번호 + 이메일로 유저 조회 (비밀번호 찾기)
-    Optional<User> findByNameAndPhoneNumberAndEmail(String name, String phoneNumber, String email);
 }
