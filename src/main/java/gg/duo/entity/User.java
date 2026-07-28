@@ -25,10 +25,10 @@ public class User {
     private String password;
 
     @Column(nullable = false)
-    private String name;        // 본명
+    private String name;
 
     @Column(nullable = false)
-    private String phoneNumber; // 전화번호
+    private String phone;
 
     @Column(nullable = false, unique = true)
     private String nickname;

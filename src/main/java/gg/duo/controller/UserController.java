@@ -33,11 +33,11 @@ public class UserController {
     }
 
     /**
-     * [수정] 이름과 전화번호(phoneNumber)로 이메일(아이디) 찾기
+     * 이름과 전화번호(phone)로 이메일(아이디) 찾기
      */
     @GetMapping("/find-email")
-    public Map<String, String> findEmail(@RequestParam String name, @RequestParam String phoneNumber) {
-        String maskedEmail = userService.findEmailByNameAndPhone(name, phoneNumber);
+    public Map<String, String> findEmail(@RequestParam String name, @RequestParam String phone) {
+        String maskedEmail = userService.findEmailByNameAndPhone(name, phone);
         return Map.of("email", maskedEmail);
     }
 }

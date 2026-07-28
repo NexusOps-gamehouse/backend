@@ -1,8 +1,6 @@
 package gg.duo.controller;
 
 import gg.duo.dto.AuthDtos.AuthResponse;
-import gg.duo.dto.AuthDtos.FindPasswordRequest;
-import gg.duo.dto.AuthDtos.FindPasswordResponse;
 import gg.duo.dto.AuthDtos.LoginRequest;
 import gg.duo.dto.AuthDtos.SignupForm;
 import gg.duo.service.AuthService;

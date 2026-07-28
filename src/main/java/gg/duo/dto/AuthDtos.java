@@ -8,8 +8,8 @@ public class AuthDtos {
     public static class SignupForm {
         private String email;
         private String password;
-        private String name;
-        private String phoneNumber;
+        private String name;        // 회원가입 및 아이디 찾기용
+        private String phone;       // 회원가입 및 아이디 찾기용 (phoneNumber -> phone 변경)
         private String nickname;
         private String gender;
         private String ageRange;
@@ -31,12 +31,4 @@ public class AuthDtos {
             String nickname, String gender, String ageRange, String game,
             String playStyle, String position, boolean mic, String tier,
             String playTimes, String gameModes, String riotNickname) {}
-
-    // 아이디 찾기 요청/응답 DTO
-    public record FindIdRequest(String name, String phoneNumber) {}
-    public record FindIdResponse(String email) {} // 마스킹된 이메일 반환
-
-    // 비밀번호 재설정 요청/응답 DTO
-    public record FindPasswordRequest(String name, String phoneNumber, String email) {}
-    public record FindPasswordResponse(String tempPassword) {}
 }
