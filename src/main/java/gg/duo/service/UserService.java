@@ -48,21 +48,21 @@ public class UserService {
     }
 
     /**
-     * [추가] 이름과 전화번호로 이메일(아이디) 찾기 및 마스킹 처리
+     * [수정] 이름과 phoneNumber로 이메일(아이디) 찾기 및 마스킹 처리
      */
     @Transactional(readOnly = true)
-    public String findEmailByNameAndPhone(String name, String phone) {
+    public String findEmailByNameAndPhone(String name, String phoneNumber) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("이름을 입력해주세요.");
         }
-        if (phone == null || phone.isBlank()) {
+        if (phoneNumber == null || phoneNumber.isBlank()) {
             throw new IllegalArgumentException("전화번호를 입력해주세요.");
         }
 
         // DB 저장이 하이픈 없이 되어있을 수 있으므로 하이픈 제거 버전과 원본 모두 대응
-        String cleanPhone = phone.replaceAll("-", "");
+        String cleanPhone = phoneNumber.replaceAll("-", "");
 
-        User user = userRepository.findByNameAndPhoneNumber(name, phone)
+        User user = userRepository.findByNameAndPhoneNumber(name, phoneNumber)
                 .orElseGet(() -> userRepository.findByNameAndPhoneNumber(name, cleanPhone)
                         .orElseThrow(() -> new IllegalArgumentException("일치하는 회원 정보를 찾을 수 없습니다.")));
 
