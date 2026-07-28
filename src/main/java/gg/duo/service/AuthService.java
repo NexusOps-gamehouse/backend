@@ -40,8 +40,6 @@ public class AuthService {
         User user = new User();
         user.setEmail(form.getEmail());
         user.setPassword(passwordEncoder.encode(form.getPassword()));
-        user.setName(form.getName());     // [유지] 이름 저장
-        user.setPhone(form.getPhone());   // [유지] 전화번호 저장
         user.setNickname(form.getNickname());
         user.setProfileImageUrl(fileStorageService.store(image));
         user.setGender(form.getGender());

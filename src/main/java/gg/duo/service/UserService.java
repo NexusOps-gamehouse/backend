@@ -5,6 +5,7 @@ import gg.duo.dto.UserDto;
 import gg.duo.entity.User;
 import gg.duo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public UserDto me(Long userId) {
@@ -48,18 +50,13 @@ public class UserService {
     }
 
     /**
-     * 이름과 phone으로 이메일(아이디) 찾기 및 마스킹 처리
+     * [아이디 찾기] 본명과 전화번호로 이메일 조회 및 마스킹
      */
     @Transactional(readOnly = true)
     public String findEmailByNameAndPhone(String name, String phone) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("이름을 입력해주세요.");
-        }
-        if (phone == null || phone.isBlank()) {
-            throw new IllegalArgumentException("전화번호를 입력해주세요.");
-        }
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("이름을 입력해주세요.");
+        if (phone == null || phone.isBlank()) throw new IllegalArgumentException("전화번호를 입력해주세요.");
 
-        // DB 저장이 하이픈 없이 되어있을 수 있으므로 하이픈 제거 버전과 원본 모두 대응
         String cleanPhone = phone.replaceAll("-", "");
 
         User user = userRepository.findByNameAndPhone(name, phone)
@@ -69,10 +66,22 @@ public class UserService {
         return maskEmail(user.getEmail());
     }
 
-    // 이메일 마스킹 메서드 (예: ab***@naver.com)
+    /**
+     * [비밀번호 재설정] 이메일, 이름, 전화번호가 일치하면 새 비밀번호로 변경
+     */
+    @Transactional
+    public void resetPassword(String email, String name, String phone, String newPassword) {
+        String cleanPhone = phone.replaceAll("-", "");
+
+        User user = userRepository.findByEmailAndNameAndPhone(email, name, phone)
+                .orElseGet(() -> userRepository.findByEmailAndNameAndPhone(email, name, cleanPhone)
+                        .orElseThrow(() -> new IllegalArgumentException("일치하는 회원 정보를 찾을 수 없습니다.")));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+    }
+
     private String maskEmail(String email) {
         if (email == null || !email.contains("@")) return email;
-
         String[] parts = email.split("@");
         String id = parts[0];
         String domain = parts[1];
