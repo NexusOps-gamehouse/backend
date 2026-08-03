@@ -71,7 +71,6 @@ public class SecurityConfig {
                                 "/api/users/reset-password",
                                 "/ws/**",
                                 "/uploads/**"
-                                "/actuator/health"
                         ).permitAll()
 
                         // 게시글 조회는 로그인 없이 허용
