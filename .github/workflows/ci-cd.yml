@@ -167,20 +167,20 @@ jobs:
           echo "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ env.APP }}-develop"
           echo "docker run -d -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ env.APP }}-develop"
   deploy:
-    name: deploy (OIDC login test)
     needs: publish
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+  
+    permissions:
+      id-token: write
+      contents: read
   
     steps:
       - uses: actions/checkout@v4
   
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Get OIDC Token
+        uses: actions/github-script@v7
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
-  
-      - name: Verify AWS Login
-        run: aws sts get-caller-identity
+          script: |
+            const id_token = await core.getIDToken('sts.amazonaws.com');
+            console.log(id_token);
