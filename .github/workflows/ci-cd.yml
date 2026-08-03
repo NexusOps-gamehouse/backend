@@ -193,9 +193,10 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "Deploy GameHouse" \
             --parameters 'commands=[
-              "cd /home/ssm-user/infra",
-              "chmod +x scripts/deploy.sh",
-              "./scripts/deploy.sh"
+              "whoami",
+              "echo $HOME",
+              "ls -al ~/.docker",
+              "cat ~/.docker/config.json || true"
             ]' \
             --query "Command.CommandId" \
             --output text)
