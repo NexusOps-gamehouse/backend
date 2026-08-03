@@ -2,6 +2,7 @@ package gg.duo.controller;
 
 import gg.duo.dto.AuthDtos.ProfileUpdateRequest;
 import gg.duo.dto.UserDto;
+import gg.duo.riot.dto.response.RiotProfileResponseDTO;
 import gg.duo.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -58,13 +59,22 @@ public class UserController {
     ) {}
 
     /** 라이엇 프로필 동기화 */
+    /**
+     * 라이엇 계정 연동.
+     *
+     * 반환 타입이 UserDto 였는데, 프론트(api/riot.js normalizeProfile)는
+     * RiotProfileResponseDTO 형태(tier / rank / leaguePoints / championMasteries)를
+     * 기대한다. UserDto 에는 그 필드들이 없어 leaguePoints 는 0,
+     * championMasteries 는 없음으로 처리되고 있었다.
+     * 또 UserDto.tier 는 사용자가 직접 고른 한글 값이라 라이엇 티어처럼 보였다.
+     */
     @PostMapping("/riot/sync")
-    public ResponseEntity<UserDto> syncRiotProfile(
+    public ResponseEntity<RiotProfileResponseDTO> syncRiotProfile(
             Authentication authentication,
             @RequestBody RiotSyncRequestDTO request
     ) {
         Long userId = (Long) authentication.getPrincipal();
-        UserDto response = userService.syncRiotProfile(
+        RiotProfileResponseDTO response = userService.syncRiotProfile(
                 userId,
                 request.gameName(),
                 request.tagLine()
