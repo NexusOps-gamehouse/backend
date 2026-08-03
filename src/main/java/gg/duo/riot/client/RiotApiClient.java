@@ -32,10 +32,11 @@ public class RiotApiClient {
 
     public AccountResponseDTO getAccount(String gameName, String tagLine) {
 
+        // URI 는 반드시 템플릿 문자열 형태로 넘긴다.
+        // uriBuilder 람다로 만들면 Micrometer 가 원래 템플릿을 알 수 없어
+        // uri 태그가 붙지 않거나 실제 값이 그대로 들어가 시계열이 폭발한다.
         return regionalWebClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}")
-                        .build(gameName, tagLine))
+                .uri("/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}", gameName, tagLine)
                 .header("X-Riot-Token", apiKey)
                 .retrieve()
                 .bodyToMono(AccountResponseDTO.class)
@@ -45,9 +46,7 @@ public class RiotApiClient {
     public SummonerResponseDTO getSummoner(String puuid) {
 
         return platformWebClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/lol/summoner/v4/summoners/by-puuid/{puuid}")
-                        .build(puuid))
+                .uri("/lol/summoner/v4/summoners/by-puuid/{puuid}", puuid)
                 .header("X-Riot-Token", apiKey)
                 .retrieve()
                 .bodyToMono(SummonerResponseDTO.class)
@@ -58,9 +57,7 @@ public class RiotApiClient {
 
         List<LeagueResponseDTO> leagues =
                 platformWebClient.get()
-                        .uri(uriBuilder -> uriBuilder
-                                .path("/lol/league/v4/entries/by-puuid/{puuid}")
-                                .build(puuid))
+                        .uri("/lol/league/v4/entries/by-puuid/{puuid}", puuid)
                         .header("X-Riot-Token", apiKey)
                         .retrieve()
                         .bodyToFlux(LeagueResponseDTO.class)
@@ -81,9 +78,7 @@ public class RiotApiClient {
 
         List<ChampionMasteryResponseDTO> masteries =
                 platformWebClient.get()
-                        .uri(uriBuilder -> uriBuilder
-                                .path("/lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}")
-                                .build(puuid))
+                        .uri("/lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}", puuid)
                         .header("X-Riot-Token", apiKey)
                         .retrieve()
                         .bodyToFlux(ChampionMasteryResponseDTO.class)
