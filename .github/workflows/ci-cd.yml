@@ -194,7 +194,7 @@ jobs:
             --comment "Deploy GameHouse" \
             --parameters 'commands=[
               "sudo -u ssm-user -H bash /home/ssm-user/infra/scripts/deploy.sh"
-            ]'
+            ]' \
             --query "Command.CommandId" \
             --output text)
   
