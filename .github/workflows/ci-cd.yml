@@ -16,6 +16,7 @@ concurrency:
 # 최소 권한만 부여한다. PR 실행은 Docker Hub 자격증명을 사용하지 않는다.
 permissions:
   contents: read
+  id-token: write
 
 env:
   # Docker Hub private repo 1개(nexusops/gamehouse)를 backend/frontend가 공유하고,
@@ -165,3 +166,20 @@ jobs:
         run: |
           echo "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ env.APP }}-develop"
           echo "docker run -d -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ env.APP }}-develop"
+  deploy:
+    name: deploy (OIDC login test)
+    needs: publish
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+  
+    steps:
+      - uses: actions/checkout@v4
+  
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+  
+      - name: Verify AWS Login
+        run: aws sts get-caller-identity
