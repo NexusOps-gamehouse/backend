@@ -4,6 +4,8 @@ import gg.duo.dto.AuthDtos.ProfileUpdateRequest;
 import gg.duo.dto.UserDto;
 import gg.duo.entity.User;
 import gg.duo.repository.UserRepository;
+import gg.duo.riot.dto.response.RiotProfileResponseDTO;
+import gg.duo.riot.service.RiotService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RiotService riotService;
 
     @Transactional(readOnly = true)
     public UserDto me(Long userId) {
@@ -91,13 +94,32 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
     }
 
-    /** [라이엇 프로필 동기화] */
+    /**
+     * [라이엇 프로필 동기화]
+     *
+     * 이전에는 입력값(gameName / tagLine)만 저장하고 라이엇 API 를 호출하지 않아
+     * puuid 가 null 로 남고 티어 · LP · 챔피언 숙련도가 화면에 나오지 않았다.
+     * 프론트(RiotLinkCard)는 RiotProfileResponseDTO 형태를 기대하는데
+     * UserDto 를 돌려주고 있어서, leaguePoints 는 항상 0,
+     * championMasteries 는 항상 없음으로 처리되고 있었다.
+     *
+     * 여기서 실제로 라이엇을 조회하고, 계정 식별에 필요한 값만 DB 에 저장한다.
+     *   - puuid : 이후 조회의 기준 키
+     *   - gameName / tagLine : 라이엇이 돌려준 정규화된 값(대소문자 등)
+     * 티어(user.tier)는 사용자가 프로필에서 직접 고르는 한글 값("다이아몬드")이므로
+     * 라이엇의 영문 값("DIAMOND")으로 덮어쓰지 않는다.
+     */
     @Transactional
-    public UserDto syncRiotProfile(Long userId, String gameName, String tagLine) {
+    public RiotProfileResponseDTO syncRiotProfile(Long userId, String gameName, String tagLine) {
         User user = userRepository.findById(userId).orElseThrow();
-        user.setGameName(gameName);
-        user.setTagLine(tagLine);
-        return UserDto.from(user);
+
+        RiotProfileResponseDTO profile = riotService.fetchProfile(gameName, tagLine);
+
+        user.setPuuid(profile.getPuuid());
+        user.setGameName(profile.getGameName());
+        user.setTagLine(profile.getTagLine());
+
+        return profile;
     }
 
     private String maskEmail(String email) {
