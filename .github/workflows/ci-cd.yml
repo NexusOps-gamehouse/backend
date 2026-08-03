@@ -176,12 +176,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
   
-      - name: Print GitHub Context
-        run: |
-          echo "Repository=$GITHUB_REPOSITORY"
-          echo "Ref=$GITHUB_REF"
-          echo "Event=$GITHUB_EVENT_NAME"
-  
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
