@@ -24,6 +24,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // Observability: actuator 가 /actuator/prometheus 통로를 만들고,
+    // micrometer-registry-prometheus 가 Prometheus 가 읽을 수 있는 형식으로 변환한다.
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
     runtimeOnly 'org.postgresql:postgresql'
     runtimeOnly 'com.mysql:mysql-connector-j'
 
