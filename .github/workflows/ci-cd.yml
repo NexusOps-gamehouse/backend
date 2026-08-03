@@ -178,9 +178,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
   
-      - name: Get OIDC Token
+      - name: Print OIDC Claims
         uses: actions/github-script@v7
         with:
           script: |
-            const id_token = await core.getIDToken('sts.amazonaws.com');
-            console.log(id_token);
+            const jwt = await core.getIDToken('sts.amazonaws.com');
+      
+            const payload = jwt.split('.')[1];
+            const decoded = Buffer.from(payload, 'base64url').toString('utf8');
+      
+            console.log(decoded);
