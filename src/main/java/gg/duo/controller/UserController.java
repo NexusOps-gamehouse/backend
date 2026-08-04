@@ -82,6 +82,25 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * 저장해 둔 라이엇 프로필 조회.
+     *
+     * 마이페이지에 들어올 때마다 호출되는 자리라 라이엇 API 를 부르지 않는다.
+     * DB 에 남겨둔 마지막 스냅샷만 돌려주므로 빠르고, 레이트 리밋과 무관하며,
+     * 개발용 키가 만료된 상태에서도 지난 값이 그대로 보인다.
+     * 실제 갱신은 사용자가 "다시 불러오기"를 눌러 POST /riot/sync 를 호출할 때만 일어난다.
+     *
+     * 아직 연동하지 않았으면 204 No Content.
+     */
+    @GetMapping("/riot/profile")
+    public ResponseEntity<RiotProfileResponseDTO> storedRiotProfile(Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        RiotProfileResponseDTO profile = userService.storedRiotProfile(userId);
+        return profile == null
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(profile);
+    }
+
     public record RiotSyncRequestDTO(
             String gameName,
             String tagLine

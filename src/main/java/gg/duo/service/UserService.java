@@ -3,7 +3,10 @@ package gg.duo.service;
 import gg.duo.dto.AuthDtos.ProfileUpdateRequest;
 import gg.duo.dto.UserDto;
 import gg.duo.entity.User;
+import gg.duo.entity.UserChampionMastery;
+import gg.duo.repository.UserChampionMasteryRepository;
 import gg.duo.repository.UserRepository;
+import gg.duo.riot.dto.ChampionMasteryDTO;
 import gg.duo.riot.dto.response.RiotProfileResponseDTO;
 import gg.duo.riot.service.RiotService;
 import lombok.RequiredArgsConstructor;
@@ -11,11 +14,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserChampionMasteryRepository userChampionMasteryRepository;
     private final PasswordEncoder passwordEncoder;
     private final RiotService riotService;
 
@@ -125,7 +132,92 @@ public class UserService {
         user.setGameName(profile.getGameName());
         user.setTagLine(profile.getTagLine());
 
+        // 예전에는 식별자 세 개만 저장하고 나머지는 응답으로만 흘려보냈다.
+        // 그래서 마이페이지를 떠나는 순간 화면의 레벨·티어·LP·승패가 전부 사라졌다.
+        // 스냅샷을 남겨야 다음 방문에 라이엇을 다시 부르지 않고도 그대로 보여줄 수 있다.
+        user.setProfileIconId(profile.getProfileIconId());
+        user.setSummonerLevel(profile.getSummonerLevel());
+        user.setRiotTier(profile.getTier());
+        user.setRiotRank(profile.getRank());
+        user.setLeaguePoints(profile.getLeaguePoints());
+        user.setWins(profile.getWins());
+        user.setLosses(profile.getLosses());
+        user.setRiotSyncedAt(Instant.now());
+
+        saveMasteries(user, profile.getChampionMasteries());
+
         return profile;
+    }
+
+    /**
+     * 모스트 챔피언을 통째로 갈아끼운다.
+     *
+     * 병합하지 않고 지웠다 다시 넣는 이유는, 숙련도 순위가 바뀌면 1~3위 구성 자체가
+     * 달라지기 때문이다. 예전 1위가 이번엔 목록 밖으로 밀려날 수 있는데,
+     * 갱신만 하면 그 행이 남아 유령 데이터가 된다.
+     *
+     * delete 가 insert 보다 먼저 나가도록 flush 를 한 번 끼운다.
+     */
+    private void saveMasteries(User user, List<ChampionMasteryDTO> masteries) {
+        userChampionMasteryRepository.deleteByUser(user);
+        userChampionMasteryRepository.flush();
+
+        if (masteries == null || masteries.isEmpty()) return;
+
+        Instant now = Instant.now();
+        List<UserChampionMastery> rows = masteries.stream()
+                .map(m -> UserChampionMastery.builder()
+                        .user(user)
+                        .game("LOL")
+                        .ranking(m.getRanking())
+                        .championId(m.getChampionId())
+                        .masteryLevel(m.getChampionMasteryLevel())
+                        .masteryPoints(m.getChampionMasteryPoints())
+                        .syncedAt(now)
+                        .build())
+                .toList();
+
+        userChampionMasteryRepository.saveAll(rows);
+    }
+
+    /**
+     * 저장해 둔 라이엇 프로필을 그대로 돌려준다. 라이엇 API 를 부르지 않는다.
+     *
+     * 마이페이지에 들어올 때마다 호출되므로 라이엇을 부르면 안 된다.
+     * 개발용 키는 24시간마다 만료되고 레이트 리밋도 2분 100회라,
+     * 페이지를 몇 번 오가는 것만으로 한도에 닿는다.
+     * 갱신은 사용자가 "다시 불러오기"를 눌렀을 때만(syncRiotProfile) 일어난다.
+     *
+     * 아직 연동하지 않았으면 null.
+     */
+    @Transactional(readOnly = true)
+    public RiotProfileResponseDTO storedRiotProfile(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow();
+        if (user.getGameName() == null) return null;
+
+        List<ChampionMasteryDTO> masteries =
+                userChampionMasteryRepository.findByUserOrderByRankingAsc(user).stream()
+                        .map(m -> ChampionMasteryDTO.builder()
+                                .ranking(m.getRanking())
+                                .championId(m.getChampionId())
+                                .championMasteryLevel(m.getMasteryLevel())
+                                .championMasteryPoints(m.getMasteryPoints())
+                                .build())
+                        .toList();
+
+        return RiotProfileResponseDTO.builder()
+                .puuid(user.getPuuid())
+                .gameName(user.getGameName())
+                .tagLine(user.getTagLine())
+                .profileIconId(user.getProfileIconId())
+                .summonerLevel(user.getSummonerLevel())
+                .tier(user.getRiotTier())
+                .rank(user.getRiotRank())
+                .leaguePoints(user.getLeaguePoints())
+                .wins(user.getWins())
+                .losses(user.getLosses())
+                .championMasteries(masteries)
+                .build();
     }
 
     private String maskEmail(String email) {
