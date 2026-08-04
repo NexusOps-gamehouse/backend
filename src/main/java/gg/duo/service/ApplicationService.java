@@ -130,10 +130,25 @@ public class ApplicationService {
         if (app.getStatus() != Application.Status.APPROVED)
             throw new IllegalStateException("승인된(채팅 참여 중인) 신청만 확정할 수 있습니다.");
 
+        // 정원은 확정 단계에서만 강제한다. 채팅방 입장(approve)은 인원 제한이 없다.
+        //
+        // targetMembers 는 방장을 포함한 수이므로, 방장이 확정해 줄 수 있는 인원은
+        // 그보다 하나 적다. (예: 4명짜리 방 → 방장 제외 3명까지 확정)
+        int capacity = post.getTargetMembers() - 1;
+        long confirmed = applicationRepository.countByPostIdAndStatus(
+                post.getId(), Application.Status.CONFIRMED);
+        if (confirmed >= capacity)
+            throw new IllegalStateException(
+                    "확정 인원이 모두 찼습니다. (최대 " + capacity + "명)");
+
         app.setStatus(Application.Status.CONFIRMED);
         ChatRoom room = chatRoomRepository.findByPostId(post.getId()).orElseThrow();
         chatRoomMemberRepository.findByRoomIdAndUserId(room.getId(), app.getApplicant().getId())
                 .ifPresent(m -> m.setConfirmed(true));
+
+        // 확정 인원이 다 차도 모집글을 자동으로 닫지 않는다.
+        // 마감 여부는 방장이 "모집 완료"(PostService.close)로 직접 정한다.
+        // 자리가 찬 것은 목록의 n/m 표시로 드러나면 충분하다.
 
         notificationService.notify(app.getApplicant(),
                 "'" + post.getTitle() + "' 파티에 확정되었습니다!",
