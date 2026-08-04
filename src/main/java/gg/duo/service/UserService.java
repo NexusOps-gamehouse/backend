@@ -58,10 +58,14 @@ public class UserService {
         if (name == null || name.isBlank()) throw new IllegalArgumentException("이름을 입력해주세요.");
         if (phone == null || phone.isBlank()) throw new IllegalArgumentException("전화번호를 입력해주세요.");
 
-        String cleanPhone = phone.replaceAll("-", "");
+        // 저장 쪽(AuthService.normalizePhone)과 같은 규칙으로 맞춘다.
+        // "-" 만 지우면 "010 1234 5678" 처럼 공백이 섞인 입력은 여전히 못 찾는다.
+        String cleanName = name.trim();
+        String cleanPhone = phone.replaceAll("[^0-9]", "");
 
-        User user = userRepository.findByNameAndPhone(name, phone)
-                .orElseGet(() -> userRepository.findByNameAndPhone(name, cleanPhone)
+        // 정규화 이전에 저장된 계정(하이픈 포함)도 있을 수 있어 원본 → 정규화 순으로 두 번 찾는다.
+        User user = userRepository.findByNameAndPhone(cleanName, phone)
+                .orElseGet(() -> userRepository.findByNameAndPhone(cleanName, cleanPhone)
                         .orElseThrow(() -> new IllegalArgumentException("일치하는 회원 정보를 찾을 수 없습니다.")));
 
         return maskEmail(user.getEmail());
@@ -82,10 +86,12 @@ public class UserService {
         if (!newPassword.equals(newPasswordConfirm))
             throw new IllegalArgumentException("새 비밀번호가 일치하지 않습니다.");
 
-        String cleanPhone = phone.replaceAll("-", "");
+        // findEmailByNameAndPhone 과 동일한 정규화 규칙
+        String cleanName = name.trim();
+        String cleanPhone = phone.replaceAll("[^0-9]", "");
 
-        User user = userRepository.findByEmailAndNameAndPhone(email, name, phone)
-                .orElseGet(() -> userRepository.findByEmailAndNameAndPhone(email, name, cleanPhone)
+        User user = userRepository.findByEmailAndNameAndPhone(email, cleanName, phone)
+                .orElseGet(() -> userRepository.findByEmailAndNameAndPhone(email, cleanName, cleanPhone)
                         .orElseThrow(() -> new IllegalArgumentException("일치하는 회원 정보를 찾을 수 없습니다.")));
 
         if (passwordEncoder.matches(newPassword, user.getPassword()))
