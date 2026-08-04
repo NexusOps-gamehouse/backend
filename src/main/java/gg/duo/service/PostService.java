@@ -133,7 +133,19 @@ public class PostService {
         long pending = applicationRepository.countByPostIdAndStatus(p.getId(), Application.Status.PENDING);
 
         ChatRoom room = chatRoomRepository.findByPostId(p.getId()).orElse(null);
-        long currentMembers = room == null ? 1 : chatRoomMemberRepository.countByRoomId(room.getId());
+
+        // 모집 현황(n/m)은 "확정된 인원"으로 센다.
+        //
+        // 예전에는 채팅방 인원(countByRoomId)을 셌는데, 채팅방에는 승인만 받고 아직
+        // 확정되지 않은 사람도 들어와 있다. 그래서 자리가 남았는데도 정원이 찬 것처럼
+        // 보이거나, 반대로 4/3 처럼 정원을 넘겨 표시되는 문제가 있었다.
+        //
+        // 채팅방 입장은 인원 제한이 없고(누구나 들러서 이야기할 수 있다),
+        // 방장이 "확정"을 눌러야 비로소 한 자리가 채워진다.
+        // 방장은 글을 만든 시점에 이미 한 자리를 차지하므로 +1 한다.
+        long currentMembers = 1 + applicationRepository.countByPostIdAndStatus(
+                p.getId(), Application.Status.CONFIRMED);
+
         Long myRoomId = null;
         if (room != null && meId != null
                 && chatRoomMemberRepository.existsByRoomIdAndUserId(room.getId(), meId)) {
