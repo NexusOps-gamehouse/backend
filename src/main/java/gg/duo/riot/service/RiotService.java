@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.IntStream;
 
 @Service
@@ -24,6 +25,19 @@ public class RiotService {
         // 1. Riot ID -> PUUID
         AccountResponseDTO account =
                 riotApiClient.getAccount(gameName, tagLine);
+
+        // 없는 계정이면 여기서 끝낸다.
+        //
+        // NoSuchElementException 은 GlobalExceptionHandler 가 이미 404 로 매핑하고 있어
+        // 새 예외 클래스를 만들 필요가 없다.
+        //
+        // 이 검사가 없으면 바로 아래 account.getPuuid() 에서 NPE 로 죽는다.
+        // 결과적으로 뒤 3개 호출을 안 하는 것은 같지만, 그건 우연이지 보장이 아니다.
+        // 명시적으로 끊어야 (1) 프론트가 이유를 알 수 있고
+        // (2) 없는 계정 때문에 Riot 호출 예산(2분/100회)을 낭비하지 않는다.
+        if (account == null) {
+            throw new NoSuchElementException("소환사를 찾을 수 없습니다. 게임명과 태그를 확인해 주세요.");
+        }
 
         // 2. 소환사 정보 조회
         SummonerResponseDTO summoner =

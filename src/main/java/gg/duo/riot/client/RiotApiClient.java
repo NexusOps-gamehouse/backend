@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,6 +32,23 @@ public class RiotApiClient {
         this.platformWebClient = platformWebClient;
     }
 
+    /**
+     * Riot ID -> 계정(PUUID) 조회.
+     *
+     * 없는 계정이면 null 을 돌려준다. 호출하는 쪽에서 판단하라는 뜻이다.
+     *
+     * retrieve() 는 4xx/5xx 를 예외로 던지는데, 이 404 는 "서버가 고장났다"가 아니라
+     * "사용자가 없는 게임명/태그를 넣었다"이다. 그대로 두면 잡는 곳이 없어
+     * 500 Internal Server Error 가 되고, 프론트에는 "서버 오류"가 뜨며
+     * 대시보드의 5xx 패널에도 장애 1건으로 기록된다.
+     *
+     * 5xx 패널은 "우리 코드가 터졌다"를 알리는 자리라 평소 0 이어야 값어치가 있다.
+     * 오타마다 5xx 가 쌓이면 평소 상태를 믿을 수 없게 되고, 알림을 걸어도
+     * 오타 알림이 계속 울려 결국 무시하게 되며, 그러다 진짜 장애를 놓친다.
+     *
+     * 그래서 404 만 Mono.empty() 로 바꿔 null 로 흘린다. 429(레이트 리밋)나
+     * 5xx 는 진짜 이상 신호이므로 손대지 않고 그대로 예외로 남긴다.
+     */
     public AccountResponseDTO getAccount(String gameName, String tagLine) {
 
         // URI 는 반드시 템플릿 문자열 형태로 넘긴다.
@@ -40,6 +59,7 @@ public class RiotApiClient {
                 .header("X-Riot-Token", apiKey)
                 .retrieve()
                 .bodyToMono(AccountResponseDTO.class)
+                .onErrorResume(WebClientResponseException.NotFound.class, e -> Mono.empty())
                 .block();
     }
 
