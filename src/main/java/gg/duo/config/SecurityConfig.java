@@ -91,6 +91,30 @@ public class SecurityConfig {
                 }))
                 .authorizeHttpRequests(auth -> auth
 
+                        /*
+                         * /error 는 반드시 permitAll 이어야 한다.
+                         *
+                         * sendError() 가 호출되면 서블릿 컨테이너가 /error 로 ERROR 디스패치를
+                         * 건다. 그런데 JwtAuthFilter 는 OncePerRequestFilter 라
+                         * shouldNotFilterErrorDispatch() 기본값(true) 때문에 이 디스패치에서
+                         * 실행되지 않는다. 즉 SecurityContext 가 빈 채로 /error 에 도달한다.
+                         *
+                         * 여기가 authenticated() 로 남아 있으면 원래 상태 코드가 인증 실패로
+                         * 덮인다. 실제로 겪은 사고:
+                         *   Riot 429 → RiotConfig 가 ResponseStatusException 으로 변환
+                         *            → sendError(429) → /error → 인증 없음 → 401
+                         *            → 프론트 인터셉터가 로그아웃 → 로그인 화면으로 튕김
+                         * 토큰은 멀쩡한데 레이트 리밋 안내 대신 로그아웃이 된 것이다.
+                         *
+                         * 429 뿐 아니라 잡히지 않은 모든 예외(500)가 같은 경로를 탄다.
+                         * 즉 서버 버그 하나에 사용자가 로그아웃된다.
+                         *
+                         * 노출 위험은 없다. Spring Boot 기본값이
+                         * server.error.include-message=never / include-stacktrace=never 라
+                         * /error 본문에는 status 와 timestamp 정도만 담긴다.
+                         */
+                        .requestMatchers("/error").permitAll()
+
                         // 로그인 없이 접근 가능한 API
                         .requestMatchers(
                                 "/api/auth/**",
