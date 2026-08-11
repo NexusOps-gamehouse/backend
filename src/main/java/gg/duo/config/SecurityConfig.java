@@ -1,6 +1,7 @@
 package gg.duo.config;
 
 import gg.duo.security.JwtAuthFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
@@ -62,6 +63,32 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                /*
+                 * 인증 정보가 없는 요청에 401 을 반환한다.
+                 *
+                 * 기본값이 403 인 것이 문제였다. JwtAuthFilter 는 토큰이 유효하지 않으면
+                 * (만료 포함) SecurityContext 를 비워둔 채 그냥 통과시키고, 그 요청이
+                 * anyRequest().authenticated() 에 걸린다. 이때 Spring Security 는
+                 * httpBasic / formLogin 이 없으면 Http403ForbiddenEntryPoint 를 써서 403 을 낸다.
+                 *
+                 * 그런데 프론트(api/client.js)의 인터셉터는 401 만 처리한다.
+                 *   → 403 은 아무도 안 잡는다
+                 *   → 토큰을 지우지도, /login 으로 보내지도 않는다
+                 *   → 사용자는 죽은 토큰을 들고 "아무것도 안 되는데 로그아웃도 안 되는" 상태가 된다
+                 * JWT 만료가 24시간이므로 하루 이상 쓰는 사용자는 반드시 겪는다.
+                 *
+                 * 401(인증 안 됨)과 403(권한 없음)은 원래 의미가 다르다. 여기서 잡는 것은
+                 * 전자뿐이다. 로그인은 했는데 권한이 없는 경우(방장이 아닌데 승인 시도 등)는
+                 * SecurityException → GlobalExceptionHandler 경로라 403 그대로 유지된다.
+                 *
+                 * sendError() 를 쓰지 않는 이유: HTML 에러 페이지를 반환한다.
+                 * 이 앱의 에러 응답은 전부 {"message": ...} 이고 프론트 errMsg() 가 그것을 읽는다.
+                 */
+                .exceptionHandling(ex -> ex.authenticationEntryPoint((req, res, e) -> {
+                    res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    res.setContentType("application/json;charset=UTF-8");
+                    res.getWriter().write("{\"message\":\"로그인이 필요합니다.\"}");
+                }))
                 .authorizeHttpRequests(auth -> auth
 
                         // 로그인 없이 접근 가능한 API
