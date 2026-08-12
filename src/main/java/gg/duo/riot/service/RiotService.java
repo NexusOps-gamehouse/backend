@@ -39,17 +39,32 @@ public class RiotService {
             throw new NoSuchElementException("소환사를 찾을 수 없습니다. 게임명과 태그를 확인해 주세요.");
         }
 
+        return fetchProfileByPuuid(account.getPuuid(), account.getGameName(), account.getTagLine());
+    }
+
+    /**
+     * PUUID 를 이미 알고 있을 때 쓰는 경로. Account API 호출을 건너뛴다.
+     *
+     * PUUID 는 계정에 영구적으로 붙는 값이라, 한 번 저장해두면 같은 계정을 다시
+     * 조회할 때 Riot ID -> PUUID 변환을 반복할 이유가 없다.
+     * "다시 불러오기"는 대부분 같은 계정이므로 호출이 4회 -> 3회로 줄어든다.
+     *
+     * gameName / tagLine 은 응답 DTO 를 채우기 위해 호출하는 쪽에서 넘겨준다.
+     * (라이엇이 정규화해 돌려준 값을 DB 에 저장해 두었으므로 그것을 그대로 쓴다)
+     */
+    public RiotProfileResponseDTO fetchProfileByPuuid(String puuid, String gameName, String tagLine) {
+
         // 2. 소환사 정보 조회
         SummonerResponseDTO summoner =
-                riotApiClient.getSummoner(account.getPuuid());
+                riotApiClient.getSummoner(puuid);
 
         // 3. 티어 정보 조회
         LeagueResponseDTO league =
-                riotApiClient.getLeague(account.getPuuid());
+                riotApiClient.getLeague(puuid);
 
         // 4. 챔피언 숙련도 조회
         List<ChampionMasteryResponseDTO> masteries =
-                riotApiClient.getChampionMasteries(account.getPuuid());
+                riotApiClient.getChampionMasteries(puuid);
 
         // 5. ChampionMasteryResponseDTO -> ChampionMasteryDTO 변환
         List<ChampionMasteryDTO> championMasteries =
@@ -71,9 +86,9 @@ public class RiotService {
         return RiotProfileResponseDTO.builder()
 
                 // Account API
-                .puuid(account.getPuuid())
-                .gameName(account.getGameName())
-                .tagLine(account.getTagLine())
+                .puuid(puuid)
+                .gameName(gameName)
+                .tagLine(tagLine)
 
                 // Summoner API
                 .profileIconId(summoner.getProfileIconId())
