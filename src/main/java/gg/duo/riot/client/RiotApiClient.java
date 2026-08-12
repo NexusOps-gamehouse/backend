@@ -94,11 +94,23 @@ public class RiotApiClient {
                 .orElse(null);
     }
 
+    /**
+     * 모스트 챔피언 상위 3개.
+     *
+     * /top 변형을 쓴다. 예전에는 by-puuid/{puuid} 로 '전체'를 받아 Java 에서
+     * .limit(3) 했는데, 레벨이 높은 계정은 챔피언 숙련도 항목이 150개를 넘는다.
+     * 3개를 쓰려고 150개를 받아 파싱하고 버린 셈이다.
+     *
+     * 호출 '횟수'는 같으므로 레이트 리밋에는 영향이 없지만, 응답 크기와
+     * 역직렬화 비용이 수십 분의 1로 줄어든다. count 기본값도 3이라 우리 용도와 맞지만,
+     * 기본값에 기대지 않고 명시한다.
+     */
     public List<ChampionMasteryResponseDTO> getChampionMasteries(String puuid) {
 
         List<ChampionMasteryResponseDTO> masteries =
                 platformWebClient.get()
-                        .uri("/lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}", puuid)
+                        .uri("/lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}/top?count={count}",
+                                puuid, 3)
                         .header("X-Riot-Token", apiKey)
                         .retrieve()
                         .bodyToFlux(ChampionMasteryResponseDTO.class)
@@ -109,6 +121,7 @@ public class RiotApiClient {
             return Collections.emptyList();
         }
 
+        // 서버가 count 를 무시하는 경우를 대비해 방어적으로 자른다.
         return masteries.stream()
                 .limit(3)
                 .toList();

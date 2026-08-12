@@ -14,12 +14,22 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    /**
+     * 라이엇 재동기화 최소 간격.
+     *
+     * 개발용 키 한도가 '2분당 100회'다. 이 창 하나에 사용자당 1회로 묶어두면
+     * 연타를 해도 예산이 무너지지 않는다. 프론트도 같은 값으로 버튼을 잠그지만,
+     * 진짜 방어선은 이쪽이다. (프론트는 우회할 수 있다)
+     */
+    private static final Duration RIOT_SYNC_COOLDOWN = Duration.ofMinutes(2);
 
     private final UserRepository userRepository;
     private final UserChampionMasteryRepository userChampionMasteryRepository;
@@ -126,7 +136,38 @@ public class UserService {
     public RiotProfileResponseDTO syncRiotProfile(Long userId, String gameName, String tagLine) {
         User user = userRepository.findById(userId).orElseThrow();
 
-        RiotProfileResponseDTO profile = riotService.fetchProfile(gameName, tagLine);
+        boolean sameAccount = isSameRiotId(user, gameName, tagLine);
+
+        /*
+         * [쿨다운] 최근에 갱신했고 같은 계정이면 라이엇을 부르지 않고 저장된 값을 돌려준다.
+         *
+         * 이게 없으면 사용자가 "다시 불러오기"를 연타하는 것만으로 한도에 닿는다.
+         * 실제로 35번 클릭에 137회 호출이 나가 429 를 맞았다.
+         * (한 번 누를 때마다 라이엇 API 를 3~4회 부르기 때문이다.)
+         *
+         * 2분인 이유: 개발용 키 한도가 '2분당 100회'라 창 하나에 사용자당 1회로 묶으면
+         * 동시 사용자가 여럿이어도 예산이 무너지지 않는다. 티어와 숙련도는 판이 끝나야
+         * 바뀌는 값이라 2분 지연은 사용자가 체감하지 못한다.
+         *
+         * 계정이 바뀌면(다른 Riot ID 입력) 쿨다운을 적용하지 않는다.
+         * 그건 '갱신'이 아니라 '연동 대상 변경'이라 기다리게 할 이유가 없다.
+         */
+        if (sameAccount
+                && user.getRiotSyncedAt() != null
+                && user.getRiotSyncedAt().isAfter(Instant.now().minus(RIOT_SYNC_COOLDOWN))) {
+            return storedRiotProfile(userId);
+        }
+
+        /*
+         * [puuid 재사용] 같은 계정이면 Account API 호출을 건너뛴다.
+         *
+         * puuid 는 계정에 영구적으로 붙는 값이라 다시 물어볼 이유가 없다.
+         * "다시 불러오기"는 대부분 같은 계정이므로 실사용에서 호출이 4회 → 3회가 된다.
+         * 첫 연동이거나 다른 ID 를 입력했을 때만 Account API 를 부른다.
+         */
+        RiotProfileResponseDTO profile = (sameAccount && user.getPuuid() != null)
+                ? riotService.fetchProfileByPuuid(user.getPuuid(), user.getGameName(), user.getTagLine())
+                : riotService.fetchProfile(gameName, tagLine);
 
         user.setPuuid(profile.getPuuid());
         user.setGameName(profile.getGameName());
@@ -142,11 +183,29 @@ public class UserService {
         user.setLeaguePoints(profile.getLeaguePoints());
         user.setWins(profile.getWins());
         user.setLosses(profile.getLosses());
-        user.setRiotSyncedAt(Instant.now());
+
+        Instant syncedAt = Instant.now();
+        user.setRiotSyncedAt(syncedAt);
 
         saveMasteries(user, profile.getChampionMasteries());
 
-        return profile;
+        // 프론트가 쿨다운 남은 시간을 계산할 수 있도록 갱신 시각을 실어 보낸다.
+        return profile.toBuilder().riotSyncedAt(syncedAt).build();
+    }
+
+    /**
+     * 요청한 Riot ID 가 이미 연동된 계정과 같은가.
+     *
+     * 대소문자와 앞뒤 공백은 무시한다. 라이엇이 돌려주는 정규화된 표기와
+     * 사용자가 입력한 표기가 다를 수 있어서다. (예: "hide on bush" vs "Hide on bush")
+     */
+    private boolean isSameRiotId(User user, String gameName, String tagLine) {
+        return user.getGameName() != null
+                && user.getTagLine() != null
+                && gameName != null
+                && tagLine != null
+                && user.getGameName().equalsIgnoreCase(gameName.trim())
+                && user.getTagLine().equalsIgnoreCase(tagLine.trim());
     }
 
     /**
@@ -217,6 +276,7 @@ public class UserService {
                 .wins(user.getWins())
                 .losses(user.getLosses())
                 .championMasteries(masteries)
+                .riotSyncedAt(user.getRiotSyncedAt())
                 .build();
     }
 
