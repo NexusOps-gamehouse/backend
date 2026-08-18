@@ -12,6 +12,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -64,22 +67,20 @@ public class ApplicationService {
         Post post = postRepository.findById(postId).orElseThrow();
         if (!post.getAuthor().getId().equals(meId))
             throw new SecurityException("본인 글의 신청자만 볼 수 있습니다.");
-        return applicationRepository.findByPostIdOrderByCreatedAtDesc(postId)
+        return toDtos(applicationRepository.findByPostIdOrderByCreatedAtDesc(postId)
                 .stream()
                 .filter(a -> !isExpired(a))
-                .map(this::toDto)
-                .toList();
+                .toList());
     }
 
     /** 신청자용: 내 신청 현황 (거절/만료 제외) */
     @Transactional(readOnly = true)
     public List<ApplicationDto> myApplications(Long meId) {
-        return applicationRepository.findByApplicantIdOrderByCreatedAtDesc(meId)
+        return toDtos(applicationRepository.findByApplicantIdOrderByCreatedAtDesc(meId)
                 .stream()
                 .filter(a -> a.getStatus() != Application.Status.REJECTED)
                 .filter(a -> !isExpired(a))
-                .map(this::toDto)
-                .toList();
+                .toList());
     }
 
     /** 승인 → 파티 채팅방에 멤버로 추가 (방 없으면 생성) */
@@ -174,15 +175,52 @@ public class ApplicationService {
                 && a.getCreatedAt().isBefore(Instant.now().minus(PENDING_TTL));
     }
 
-    private ApplicationDto toDto(Application a) {
-        Long roomId = null;
-        if (a.getStatus() == Application.Status.APPROVED
-                || a.getStatus() == Application.Status.CONFIRMED) {
-            roomId = chatRoomRepository.findByPostId(a.getPost().getId())
-                    .map(ChatRoom::getId).orElse(null);
-        }
-        return new ApplicationDto(a.getId(), a.getStatus().name(), a.getCreatedAt(),
-                a.getPost().getId(), a.getPost().getTitle(),
-                UserDto.from(a.getApplicant()), roomId);
+    /**
+     * 목록 변환.
+     *
+     * 신청마다 연관을 하나씩 끌어오지 않는다. 필요한 id 를 먼저 모아 IN 으로 한 번씩만
+     * 조회하고 Map 에서 꺼내 쓴다. 글·신청자·채팅방 셋 다 같은 방식이다.
+     *
+     * 조회 쿼리에 조인(fetch join)을 걸어도 문장 수는 같지만, 바깥 행이 적으면 플래너가
+     * nested loop 를 골라 항목마다 인덱스를 다시 훑는다. IN 한 방은 대상 테이블을 한 번만
+     * 훑으므로 항목 수와 무관한 비용이 된다.
+     *
+     * a.getPost()·a.getApplicant() 는 프록시라 getId() 만 만지면 쿼리가 나가지 않는다.
+     * 그래서 본문은 프록시가 아니라 Map 에서 읽는다.
+     */
+    private List<ApplicationDto> toDtos(List<Application> applications) {
+        if (applications.isEmpty()) return List.of();
+
+        Map<Long, String> titleByPostId = postRepository
+                .findAllById(idsOf(applications, a -> a.getPost().getId()))
+                .stream().collect(Collectors.toMap(Post::getId, Post::getTitle));
+
+        Map<Long, UserDto> applicantById = userRepository
+                .findAllById(idsOf(applications, a -> a.getApplicant().getId()))
+                .stream().collect(Collectors.toMap(User::getId, UserDto::from));
+
+        Set<Long> roomPostIds = idsOf(
+                applications.stream().filter(ApplicationService::hasChatRoom).toList(),
+                a -> a.getPost().getId());
+        Map<Long, Long> roomIdByPostId = roomPostIds.isEmpty() ? Map.of()
+                : chatRoomRepository.findByPostIdIn(roomPostIds).stream()
+                        .collect(Collectors.toMap(r -> r.getPost().getId(), ChatRoom::getId));
+
+        return applications.stream()
+                .map(a -> new ApplicationDto(a.getId(), a.getStatus().name(), a.getCreatedAt(),
+                        a.getPost().getId(), titleByPostId.get(a.getPost().getId()),
+                        applicantById.get(a.getApplicant().getId()),
+                        hasChatRoom(a) ? roomIdByPostId.get(a.getPost().getId()) : null))
+                .toList();
+    }
+
+    private static Set<Long> idsOf(List<Application> applications, Function<Application, Long> id) {
+        return applications.stream().map(id).collect(Collectors.toSet());
+    }
+
+    /** 승인된 신청만 채팅방을 갖는다 */
+    private static boolean hasChatRoom(Application a) {
+        return a.getStatus() == Application.Status.APPROVED
+                || a.getStatus() == Application.Status.CONFIRMED;
     }
 }
