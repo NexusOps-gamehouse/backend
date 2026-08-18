@@ -18,14 +18,23 @@ public class PostController {
         return auth == null ? null : (Long) auth.getPrincipal();
     }
 
+    /**
+     * 모집글 목록.
+     *
+     * page/size 를 주지 않으면 최신 20개를 돌려준다. 예전에는 전체를 돌려줬는데,
+     * 글이 늘수록 요청 하나가 쓰는 메모리와 쿼리 수가 그대로 커지는 구조였다.
+     */
     @GetMapping("/api/posts")
-    public List<PostDto> list(Authentication auth,
-                              @RequestParam(required = false) String searchType,
-                              @RequestParam(required = false) String keyword,
-                              @RequestParam(required = false) String game,
-                              @RequestParam(required = false) String gameMode,
-                              @RequestParam(required = false) String status) {
-        return postService.list(userId(auth), searchType, keyword, game, gameMode, status);
+    public PostDto.ListResponse list(Authentication auth,
+                                     @RequestParam(required = false) String searchType,
+                                     @RequestParam(required = false) String keyword,
+                                     @RequestParam(required = false) String game,
+                                     @RequestParam(required = false) String gameMode,
+                                     @RequestParam(required = false) String status,
+                                     @RequestParam(defaultValue = "0") int page,
+                                     @RequestParam(defaultValue = "20") int size) {
+        return postService.list(userId(auth), searchType, keyword, game, gameMode, status,
+                page, size);
     }
 
     /** 모집 완료 처리 */
