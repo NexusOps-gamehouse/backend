@@ -8,11 +8,13 @@ import gg.duo.entity.Post;
 import gg.duo.entity.User;
 import gg.duo.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -25,26 +27,75 @@ public class PostService {
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final ChatMessageRepository chatMessageRepository;
 
-    /** 목록 + 검색(제목/닉네임) + 필터(게임/모드/모집상태) */
+    /** 목록 한 페이지의 최대 크기 — 클라이언트가 size 를 크게 보내도 여기서 막는다. */
+    private static final int MAX_PAGE_SIZE = 100;
+
+    /**
+     * 목록 + 검색(제목/닉네임) + 필터(게임/모드/모집상태) + 페이징.
+     *
+     * 검색·필터 조건은 전부 쿼리에서 처리한다. 자바에서 거르면 DB 가 자른 뒤에
+     * 거르는 순서가 되어 페이지마다 결과 개수가 들쭉날쭉해진다.
+     */
     @Transactional(readOnly = true)
-    public List<PostDto> list(Long meId, String searchType, String keyword,
-                              String game, String gameMode, String status) {
-        Stream<Post> stream = postRepository.findAllByOrderByCreatedAtDesc().stream();
-        if (keyword != null && !keyword.isBlank()) {
-            String kw = keyword.trim();
-            if ("nickname".equals(searchType)) {
-                stream = stream.filter(p -> p.getAuthor().getNickname().contains(kw));
-            } else {
-                stream = stream.filter(p -> p.getTitle().contains(kw));
+    public PostDto.ListResponse list(Long meId, String searchType, String keyword,
+                                     String game, String gameMode, String status,
+                                     int page, int size) {
+        String kw = blankToNull(keyword);
+        String g = blankToNull(game);
+        String gm = blankToNull(gameMode);
+
+        Post.Status st = null;
+        if (blankToNull(status) != null) {
+            try {
+                st = Post.Status.valueOf(status.trim());
+            } catch (IllegalArgumentException e) {
+                // 알 수 없는 상태값 — 이전과 같이 결과 없음으로 처리한다.
+                return new PostDto.ListResponse(List.of(), page, size, 0, false);
             }
         }
-        if (game != null && !game.isBlank())
-            stream = stream.filter(p -> game.equals(p.getGame()));
-        if (gameMode != null && !gameMode.isBlank())
-            stream = stream.filter(p -> gameMode.equals(p.getGameMode()));
-        if (status != null && !status.isBlank())
-            stream = stream.filter(p -> p.getStatus().name().equals(status));
-        return stream.map(p -> toDto(p, meId)).toList();
+
+        Pageable pageable = PageRequest.of(
+                Math.max(page, 0),
+                Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
+
+        String pattern = likePattern(kw);
+
+        // 닉네임 검색은 작성자와 조인해야 하므로 쿼리를 나눠 두었다.
+        // 검색어가 없으면 닉네임 조건 자체가 성립하지 않으니 제목 쪽으로 보낸다.
+        Page<Post> found = ("nickname".equals(searchType) && kw != null)
+                ? postRepository.searchByAuthorNickname(g, gm, st, pattern, pageable)
+                : postRepository.searchByTitle(g, gm, st, pattern, pageable);
+
+        List<PostDto.Summary> items = found.getContent().stream()
+                .map(p -> toSummary(p, meId))
+                .toList();
+
+        return new PostDto.ListResponse(items, found.getNumber(), found.getSize(),
+                found.getTotalElements(), found.hasNext());
+    }
+
+    private static String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s.trim();
+    }
+
+    /**
+     * 검색어를 like 패턴으로 바꾼다.
+     *
+     * 검색어가 없어도 null 이 아니라 '%' 를 넘긴다. like 에 null 을 바인딩하면
+     * 드라이버가 그 파라미터를 bytea 로 보내 Postgres 가 거부한다.
+     *   ERROR: operator does not exist: character varying ~~ bytea
+     *
+     * 사용자가 친 %, _ 는 와일드카드가 아니라 글자 그대로 찾아야 하므로
+     * 이스케이프 문자(!)를 앞에 붙인다. 쿼리 쪽에 escape '!' 가 선언돼 있다.
+     * (이스케이프 문자 자신인 ! 를 가장 먼저 치환해야 이중 치환이 안 생긴다)
+     */
+    private static String likePattern(String keyword) {
+        if (keyword == null) return "%";
+        String escaped = keyword
+                .replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_");
+        return "%" + escaped + "%";
     }
 
     @Transactional(readOnly = true)
@@ -123,16 +174,20 @@ public class PostService {
             throw new IllegalArgumentException("내용을 입력해주세요.");
     }
 
-    private PostDto toDto(Post p, Long meId) {
-        String myStatus = null;
+    /** 목록과 상세가 공통으로 쓰는 파생값 (글 자체에는 없고 조회해야 나오는 값들) */
+    private record Extras(String myStatus, boolean mine, long pending,
+                          long currentMembers, Long myRoomId) {}
+
+    private Extras extras(Post p, Long meId) {
         boolean mine = meId != null && p.getAuthor().getId().equals(meId);
+
+        String myStatus = null;
         if (meId != null && !mine) {
             myStatus = applicationRepository.findByPostIdAndApplicantId(p.getId(), meId)
                     .map(a -> a.getStatus().name()).orElse(null);
         }
-        long pending = applicationRepository.countByPostIdAndStatus(p.getId(), Application.Status.PENDING);
 
-        ChatRoom room = chatRoomRepository.findByPostId(p.getId()).orElse(null);
+        long pending = applicationRepository.countByPostIdAndStatus(p.getId(), Application.Status.PENDING);
 
         // 모집 현황(n/m)은 "확정된 인원"으로 센다.
         //
@@ -146,16 +201,32 @@ public class PostService {
         long currentMembers = 1 + applicationRepository.countByPostIdAndStatus(
                 p.getId(), Application.Status.CONFIRMED);
 
+        ChatRoom room = chatRoomRepository.findByPostId(p.getId()).orElse(null);
         Long myRoomId = null;
         if (room != null && meId != null
                 && chatRoomMemberRepository.existsByRoomIdAndUserId(room.getId(), meId)) {
             myRoomId = room.getId();
         }
 
-        return new PostDto(p.getId(), p.getTitle(), p.getContent(), p.getCreatedAt(),
-                UserDto.from(p.getAuthor()), pending, myStatus, mine,
+        return new Extras(myStatus, mine, pending, currentMembers, myRoomId);
+    }
+
+    /** 목록용 — content 를 싣지 않는다. */
+    private PostDto.Summary toSummary(Post p, Long meId) {
+        Extras e = extras(p, meId);
+        return new PostDto.Summary(p.getId(), p.getTitle(), p.getCreatedAt(),
+                UserDto.from(p.getAuthor()), e.pending(), e.myStatus(), e.mine(),
                 p.getGame(), p.getGameMode(), p.getPlayTime(), p.isMicRequired(),
-                p.getPositions(), p.getTargetMembers(), currentMembers,
-                p.getStatus().name(), myRoomId);
+                p.getPositions(), p.getTargetMembers(), e.currentMembers(),
+                p.getStatus().name(), e.myRoomId());
+    }
+
+    private PostDto toDto(Post p, Long meId) {
+        Extras e = extras(p, meId);
+        return new PostDto(p.getId(), p.getTitle(), p.getContent(), p.getCreatedAt(),
+                UserDto.from(p.getAuthor()), e.pending(), e.myStatus(), e.mine(),
+                p.getGame(), p.getGameMode(), p.getPlayTime(), p.isMicRequired(),
+                p.getPositions(), p.getTargetMembers(), e.currentMembers(),
+                p.getStatus().name(), e.myRoomId());
     }
 }
