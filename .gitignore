@@ -1,6 +1,16 @@
 .gradle/
 build/
+*/build/
 bin/
+*/bin/
 out/
-src/main/resources/application-secret.yml
+
+# 로컬 시크릿 — 컨테이너는 환경변수로 주입받는다
+application-secret.yml
+*/src/main/resources/application-secret.yml
+
 uploads/
+*/uploads/
+
+# 모듈 분리 작업 중 생긴 임시 폴더 (삭제 후 이 줄도 지울 것)
+_to_delete/
