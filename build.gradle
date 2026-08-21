@@ -1,43 +1,50 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.3.5'
-    id 'io.spring.dependency-management' version '1.1.6'
+    id 'org.springframework.boot' version '3.3.5' apply false
+    id 'io.spring.dependency-management' version '1.1.6' apply false
 }
 
-group = 'gg.duo'
-version = '0.0.1-SNAPSHOT'
+allprojects {
+    group = 'gg.duo'
+    version = '0.0.1-SNAPSHOT'
+    repositories { mavenCentral() }
+}
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+
+    java {
+        toolchain { languageVersion = JavaLanguageVersion.of(17) }
     }
-}
 
-repositories {
-    mavenCentral()
-}
+    dependencyManagement {
+        imports {
+            mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+        }
+    }
 
-dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-websocket'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    /*
+     * -parameters 를 켠다.
+     *
+     * 이벤트 계약이 record 인데, Jackson 이 JSON → record 로 되돌리려면 생성자
+     * 파라미터 이름이 클래스 파일에 남아 있어야 한다. 기본 컴파일은 그 이름을
+     * 버리므로 역직렬화가 실패한다.
+     *
+     * user/post/chat/riot 은 Spring Boot 플러그인이 이걸 자동으로 붙여주지만
+     * common 은 java-library 라 붙지 않는다. 그런데 이벤트 record 가 전부
+     * common 에 있다. 그래서 모든 모듈에 일괄로 건다.
+     */
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs << '-parameters'
+        options.encoding = 'UTF-8'
+    }
 
-    // Observability: actuator 가 /actuator/prometheus 통로를 만들고,
-    // micrometer-registry-prometheus 가 Prometheus 가 읽을 수 있는 형식으로 변환한다.
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'io.micrometer:micrometer-registry-prometheus'
+    dependencies {
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    }
 
-    runtimeOnly 'org.postgresql:postgresql'
-    runtimeOnly 'com.mysql:mysql-connector-j'
-
-
-    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
-
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
+    tasks.named('test') { useJUnitPlatform() }
 }
