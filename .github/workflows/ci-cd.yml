@@ -1,7 +1,12 @@
 name: backend-ci-cd
 
-# feature/* -> develop PR 시 검증, develop merge 시 배포까지 수행한다.
-# staging/main 배포는 develop 파이프라인 검증 후 별도로 확장한다.
+# feature/* -> develop PR 시 검증, develop merge 시 이미지 publish.
+#
+# ⚠️ MSA 분리 이후 이미지가 1개 → 4개다(user/post/chat/riot).
+#    빌드·스모크 테스트·publish 모두 matrix 로 서비스마다 따로 돈다.
+#    common 은 라이브러리라 이미지가 없다.
+#
+# ⚠️ deploy job 은 현재 비활성이다. 아래 deploy job 주석 참고.
 on:
   pull_request:
     branches: [develop]
@@ -9,11 +14,8 @@ on:
     branches: [develop]
 
 # 같은 브랜치에 커밋이 연달아 올라오면 이전 실행을 취소한다.
-# 단, push(=develop merge=배포)는 중간에 끊기면 안 되므로 PR 실행만 취소한다.
-#
-# 무조건 취소(cancel-in-progress: true)로 두면 배포 중 새 커밋이 들어올 때
-# deploy job(SSM 폴링)이 죽는다. 이때 EC2 위의 deploy.sh 는 그대로 계속 돌기
-# 때문에 "GitHub 은 취소, 서버는 배포 진행 중" 이라는 불일치가 생긴다.
+# 단, push(=develop merge)는 이미지 publish 가 중간에 끊기면 태그가 어긋나므로
+# PR 실행만 취소한다.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -25,14 +27,15 @@ permissions:
 
 env:
   # Docker Hub private repo 1개(nexusops/gamehouse)를 backend/frontend가 공유하고,
-  # 앱 구분은 태그 접두어(backend-/frontend-)로 한다.
-  IMAGE_REPO: gamehouse   # Docker Hub repository 이름
-  APP: backend            # 이 저장소가 담당하는 앱 = 태그 접두어
+  # 앱 구분은 태그 접두어로 한다.
+  #   before  backend-develop
+  #   after   user-develop / post-develop / chat-develop / riot-develop
+  IMAGE_REPO: gamehouse
 
 jobs:
   # ---------------------------------------------------------------
   # [PR 게이트 1] Secret scan
-  # 컴파일 검증은 image-check의 docker build(./gradlew clean bootJar)가
+  # 컴파일 검증은 image-check의 docker build(./gradlew :<svc>:bootJar)가
   # 이미 수행하므로 여기서는 중복이라 제외했다.
   # 테스트 코드를 도입하면 bootJar는 테스트를 실행하지 않으므로,
   # 그때 이 job에 ./gradlew test 를 다시 추가한다.
@@ -57,14 +60,32 @@ jobs:
   # Dockerfile이 jlink로 JRE를 직접 조립하므로, 모듈이 빠지면
   # 컴파일/빌드는 모두 통과하고 "실행할 때만" NoClassDefFound가 난다.
   # 이 실패는 컨테이너를 실제로 띄워야만 잡히므로 merge 전에 배치한다.
-  # verify와 병렬로 실행되어 전체 대기 시간을 늘리지 않는다.
+  #
+  # 서비스마다 의존 라이브러리가 달라(webflux / websocket / amqp) 필요한 JDK
+  # 모듈도 다르다. 그래서 4개를 각각 띄워봐야 한다.
+  # fail-fast: false — 하나가 깨져도 나머지 결과를 봐야 원인이 좁혀진다.
   # ---------------------------------------------------------------
   image-check:
-    name: image-check (build & smoke test)
+    name: image-check (${{ matrix.service }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
-    # 앱은 DB 연결 없이 기동하지 않는다(ddl-auto: update).
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: user
+            mgmt_port: 8181
+          - service: post
+            mgmt_port: 8182
+          - service: chat
+            mgmt_port: 8183
+          - service: riot
+            mgmt_port: 8184
+
+    # user/post/chat 은 DB 없이 기동하지 않는다(ddl-auto: update).
+    # riot 은 소유 테이블이 0개라 필요 없지만, service 컨테이너는 job 단위라
+    # 함께 뜬다. 비용이 작아 그대로 둔다.
     services:
       postgres:
         image: postgres:16-alpine
@@ -80,41 +101,84 @@ jobs:
           --health-timeout 3s
           --health-retries 5
 
+      # 서비스 간 이벤트(AMQP)용. 브로커가 없으면 앱은 뜨지만 재접속 로그가
+      # 계속 쌓이고 actuator health 가 DOWN 이라 스모크 테스트가 실패한다.
+      rabbitmq:
+        image: rabbitmq:3-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: appuser
+          RABBITMQ_DEFAULT_PASS: apppass
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
       # Dockerfile이 BuildKit 문법을 쓰고, type=gha 캐시를 쓰려면 필요하다.
       - uses: docker/setup-buildx-action@v3
 
+      # 3단계(스키마·계정 분리) 이후 각 서비스는 자기 스키마·계정으로만 접속한다.
+      # 스키마와 계정이 없으면 부팅 자체가 안 되므로 컨테이너를 띄우기 전에 만든다.
+      # 비밀번호는 local-bootstrap.sql 안에 로컬 개발용 고정값으로 들어 있고,
+      # 아래 docker run 의 환경변수와 같은 값이다.
+      - name: Bootstrap DB schemas and roles
+        if: matrix.service != 'riot'
+        env:
+          PGPASSWORD: ci-local-password
+        run: |
+          psql -h localhost -U duo -d duo -v ON_ERROR_STOP=1 \
+            -f db/migration/local-bootstrap.sql
+
       # push 없이 runner의 Docker에만 적재(load)한다.
       # 검증에 실패하면 Docker Hub에는 아무것도 올라가지 않는다.
+      #
+      # context 가 backend 루트인 것이 중요하다. 각 서비스는 :common 을 의존하므로
+      # 모듈 디렉터리만 넘기면 settings.gradle 도 common/ 도 안 보인다.
+      #
+      # cache scope 를 서비스별로 나눈다. 공유하면 서로 캐시를 덮어써
+      # 매번 전체 빌드가 되고, 잘못된 레이어를 물어올 위험도 있다.
       - name: Build image
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ${{ matrix.service }}/Dockerfile
           load: true
           push: false
-          tags: ${{ env.APP }}:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: gamehouse-${{ matrix.service }}:ci
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
       # DAST: 실제로 컨테이너를 띄워 동작을 확인한다.
-      # GET /api/posts는 SecurityConfig에서 permitAll이고 DB를 조회하므로,
-      # 200이 돌아오면 "기동 + 시큐리티 + DB 연결"이 한 번에 검증된다.
+      #
+      # actuator/health 를 쓰는 이유: 서비스마다 공개 엔드포인트가 다른데
+      # (post 는 GET /api/posts, user 는 없음) health 는 넷 다 같은 자리에 있다.
+      # 게다가 DB·RabbitMQ 커넥션까지 함께 확인해준다 — 하나라도 끊겨 있으면 503 이다.
+      #
+      # 환경변수는 넷에 모두 같은 것을 넘긴다. 자기가 안 쓰는 값은 무시된다.
+      # (riot 은 DB·이벤트를 아예 쓰지 않아 대부분이 무시된다)
       - name: Smoke test running container
         run: |
-          docker run -d --name gh-backend-ci --network host \
+          docker run -d --name gh-ci-${{ matrix.service }} --network host \
             -e DB_URL=jdbc:postgresql://localhost:5432/duo \
-            -e DB_USERNAME=duo \
-            -e DB_PASSWORD=ci-local-password \
+            -e USER_DB_USERNAME=duo_user -e USER_DB_PASSWORD=local-user-pw \
+            -e POST_DB_USERNAME=duo_post -e POST_DB_PASSWORD=local-post-pw \
+            -e CHAT_DB_USERNAME=duo_chat -e CHAT_DB_PASSWORD=local-chat-pw \
+            -e RABBITMQ_HOST=localhost \
+            -e RABBITMQ_USERNAME=appuser -e RABBITMQ_PASSWORD=apppass \
             -e JWT_SECRET=ci-only-throwaway-secret-key-do-not-use-in-prod \
-            ${{ env.APP }}:ci
+            gamehouse-${{ matrix.service }}:ci
 
           ok=0
           for i in $(seq 1 30); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/posts || echo 000)
+            code=$(curl -s -o /dev/null -w '%{http_code}' \
+              http://localhost:${{ matrix.mgmt_port }}/actuator/health || echo 000)
             if [ "${code}" = "200" ]; then
-              echo "HTTP 200 - application is up and reached the database"
+              echo "HTTP 200 - ${{ matrix.service }} is up (DB / broker connections healthy)"
               ok=1
               break
             fi
@@ -123,26 +187,35 @@ jobs:
           done
 
           if [ "${ok}" != "1" ]; then
-            echo "::error::Application did not return HTTP 200 within 60s"
-            docker logs --tail=200 gh-backend-ci
+            echo "::error::${{ matrix.service }} did not become healthy within 60s"
+            curl -s http://localhost:${{ matrix.mgmt_port }}/actuator/health || true
+            docker logs --tail=200 gh-ci-${{ matrix.service }}
             exit 1
           fi
 
       - name: Clean up container
         if: always()
-        run: docker rm -f gh-backend-ci || true
+        run: docker rm -f gh-ci-${{ matrix.service }} || true
 
   # ---------------------------------------------------------------
-  # [배포] develop merge 이후에만 실행
+  # [publish] develop merge 이후에만 실행
   # 위 두 게이트를 모두 통과한 커밋만 Docker Hub로 나간다.
-  # image-check가 캐시를 채워두므로 여기서의 build는 대부분 캐시 히트다.
+  # image-check가 서비스별 캐시를 채워두므로 여기서의 build는 대부분 캐시 히트다.
+  #
+  # 태그가 4벌이 된다. 기존 backend-develop 태그는 더 이상 갱신되지 않는다.
   # ---------------------------------------------------------------
   publish:
-    name: publish (push to Docker Hub)
+    name: publish (${{ matrix.service }})
     needs: [verify, image-check]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [user, post, chat, riot]
+
     steps:
       - uses: actions/checkout@v4
 
@@ -159,43 +232,61 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ${{ matrix.service }}/Dockerfile
           push: true
           platforms: linux/amd64
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ env.APP }}-develop
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ env.APP }}-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ matrix.service }}-develop
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ matrix.service }}-${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
-      # show pull command는 삭제했음. 
+  # ---------------------------------------------------------------
+  # [deploy] ⛔ 현재 비활성 — if: false
+  #
+  # [왜 껐나]
+  # 이 job 은 EC2 의 deploy.sh 를 실행해 docker-compose 를 다시 띄운다.
+  # 그런데 compose 는 아직 backend 컨테이너 1개 전제이고, RDS 에도
+  # 서비스별 스키마·계정이 없다. 이 상태로 배포가 나가면
+  #   - 새 코드가 default_schema(post_svc 등)를 찾다가 실패하거나
+  #   - ddl-auto: update 가 빈 스키마를 새로 만들어 데이터가 사라진 것처럼 보인다
+  #
+  # [되살리는 조건] — 4단계 배포 준비
+  #   1. RDS 에 db/migration/V1__split_schemas.sql + V2 적용
+  #   2. compose(또는 k8s 매니페스트)를 서비스 4개로 확장
+  #   3. Ingress/nginx 경로 라우팅 (vite.config.js 규칙과 동일하게)
+  #   4. 배포용 환경변수 추가 — USER/POST/CHAT_DB_USERNAME·PASSWORD
+  #   위 넷이 끝나면 아래 if 를 원래대로 되돌린다.
+  #     if: github.event_name == 'push'
+  # ---------------------------------------------------------------
   deploy:
-    name: deploy
+    name: deploy (비활성 — 4단계 준비 후 활성화)
     needs: publish
-    if: github.event_name == 'push'
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
-  
+
     permissions:
       id-token: write
       contents: read
-  
+
     steps:
       - uses: actions/checkout@v4
-  
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
-  
+
       - name: Encode ENV_FILE
         run: |
           printf "%s" "${{ secrets.ENV_FILE }}" | base64 -w0 > env.b64
-  
+
       - name: Deploy via SSM
         run: |
           ENV_B64=$(cat env.b64)
-  
+
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
@@ -207,18 +298,18 @@ jobs:
             ]" \
             --query "Command.CommandId" \
             --output text)
-  
+
           echo "Command ID: $COMMAND_ID"
-  
+
           for i in {1..60}; do
             STATUS=$(aws ssm get-command-invocation \
               --command-id "$COMMAND_ID" \
               --instance-id "${{ secrets.EC2_INSTANCE_ID }}" \
               --query "Status" \
               --output text)
-  
+
             echo "Current Status: $STATUS"
-  
+
             case "$STATUS" in
               Success)
                 echo "Deployment succeeded!"
@@ -229,9 +320,9 @@ jobs:
                 exit 1
                 ;;
             esac
-  
+
             sleep 5
           done
-  
+
           echo "::error::Deployment timed out."
           exit 1

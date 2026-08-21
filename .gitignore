@@ -12,5 +12,8 @@ application-secret.yml
 uploads/
 */uploads/
 
-# 모듈 분리 작업 중 생긴 임시 폴더 (삭제 후 이 줄도 지울 것)
-_to_delete/
+# DB 백업 (실데이터 포함 — 커밋 금지)
+backup_*.sql
+
+# 검증용 임시 아카이브
+_verify-tmp.tgz
