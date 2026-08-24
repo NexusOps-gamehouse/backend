@@ -82,6 +82,8 @@ jobs:
             mgmt_port: 8183
           - service: riot
             mgmt_port: 8184
+          - service: match
+            mgmt_port: 8185
 
     # user/post/chat 은 DB 없이 기동하지 않는다(ddl-auto: update).
     # riot 은 소유 테이블이 0개라 필요 없지만, service 컨테이너는 job 단위라
@@ -168,6 +170,7 @@ jobs:
             -e USER_DB_USERNAME=duo_user -e USER_DB_PASSWORD=local-user-pw \
             -e POST_DB_USERNAME=duo_post -e POST_DB_PASSWORD=local-post-pw \
             -e CHAT_DB_USERNAME=duo_chat -e CHAT_DB_PASSWORD=local-chat-pw \
+            -e MATCH_DB_USERNAME=duo_match -e MATCH_DB_PASSWORD=local-match-pw \
             -e RABBITMQ_HOST=localhost \
             -e RABBITMQ_USERNAME=appuser -e RABBITMQ_PASSWORD=apppass \
             -e JWT_SECRET=ci-only-throwaway-secret-key-do-not-use-in-prod \

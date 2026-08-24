@@ -10,6 +10,7 @@
         <module name="duo-backend.riot.main" />
         <module name="duo-backend.user.main" />
         <module name="duo-backend.chat.main" />
+        <module name="duo-backend.match.main" />
         <module name="duo-backend.common.main" />
         <module name="duo-backend.post.main" />
       </profile>
@@ -24,6 +25,9 @@
       <module name="duo-backend.common" options="-parameters" />
       <module name="duo-backend.common.main" options="-parameters" />
       <module name="duo-backend.common.test" options="-parameters" />
+      <module name="duo-backend.match" options="-parameters" />
+      <module name="duo-backend.match.main" options="-parameters" />
+      <module name="duo-backend.match.test" options="-parameters" />
       <module name="duo-backend.post" options="-parameters" />
       <module name="duo-backend.post.main" options="-parameters" />
       <module name="duo-backend.post.test" options="-parameters" />
