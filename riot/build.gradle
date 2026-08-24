@@ -1,17 +1,9 @@
-group = 'gg.duo'
-version = '0.0.1-SNAPSHOT'
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.5'
+    id 'io.spring.dependency-management' version '1.1.6'
 }
 
-repositories {
-    mavenCentral()
-}
-
-// riot 은 테이블을 소유하지 않는다. JPA 도, DB 드라이버도 필요 없다.
 dependencies {
     implementation project(':common')
     implementation 'org.springframework.boot:spring-boot-starter-web'
