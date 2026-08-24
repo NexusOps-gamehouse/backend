@@ -1,21 +1,22 @@
 # 로컬 실행 가이드 (MSA 구조)
 
-브랜치 `msa-structure` · 백엔드가 앱 1개 → **4개**로 나뉘었습니다.
+브랜치 `msa-structure` · 백엔드가 앱 1개 → **5개**로 나뉘었습니다.
 
 ```
 Before                      After
-DuoApplication :8080        UserApplication :8081   인증·프로필·친구·알림
-                            PostApplication :8082   모집글·지원
-                            ChatApplication :8083   채팅·WebSocket
-                            RiotApplication :8084   라이엇 API (내부 전용)
+DuoApplication :8080        UserApplication  :8081   인증·프로필·친구·알림
+                            PostApplication  :8082   모집글·지원
+                            ChatApplication  :8083   채팅·WebSocket
+                            RiotApplication  :8084   라이엇 API (내부 전용)
+                            MatchApplication :8085   Team Fit 추천
 ```
 
 **먼저 알아둘 것 4가지**
 
 1. `DuoApplication`은 없어졌습니다. 기존 Run Configuration을 삭제하세요.
-2. **4개를 다 띄워야** 정상 동작합니다.
+2. **5개를 다 띄워야** 정상 동작합니다(riot·match는 죽어 있어도 나머지는 됩니다 — 아래 "자주 만나는 에러" 참고).
 3. `application-secret.yml`이 `src/main/resources/` → **`backend/` 루트**로 이동했습니다.
-4. DB에 **스키마 3개 + 계정 3개**가 필요합니다. (서비스별 데이터 소유권 분리)
+4. DB에 **스키마 4개 + 계정 4개**가 필요합니다. (서비스별 데이터 소유권 분리, riot은 소유 테이블이 없어 제외)
 
 ---
 
@@ -42,7 +43,7 @@ git fetch origin && git checkout msa-structure
 > Gradle 툴윈도우 → **⟳ Reload All Gradle Projects**
 > 안 되면 `File → Invalidate Caches → Invalidate and Restart`
 
-**확인** — 프로젝트 뷰에 모듈 5개(`common` `user` `post` `chat` `riot`)가 파란 아이콘이면 성공.
+**확인** — 프로젝트 뷰에 모듈 6개(`common` `user` `post` `chat` `riot` `match`)가 파란 아이콘이면 성공.
 
 ```bash
 ./gradlew build -x test     # BUILD SUCCESSFUL
@@ -76,7 +77,7 @@ docker exec -i $C psql -U duo -d duo -v ON_ERROR_STOP=1 \
   < db/migration/local-bootstrap.sql
 ```
 
-스키마 3개(`user_svc` `post_svc` `chat_svc`)와 계정 3개(`duo_user` `duo_post` `duo_chat`)가 만들어집니다.
+스키마 4개(`user_svc` `post_svc` `chat_svc` `match_svc`)와 계정 4개(`duo_user` `duo_post` `duo_chat` `duo_match`)가 만들어집니다.
 **테이블은 앱이 뜨면서 자동으로 생깁니다.**
 
 > 이미 데이터가 있는 DB라면 `local-bootstrap.sql` 대신 `V1__split_schemas.sql`을 쓰세요.
@@ -90,8 +91,9 @@ docker exec -i $C psql -U duo -d duo -v ON_ERROR_STOP=1 \
 cp application-secret-example.yml application-secret.yml
 ```
 
-`JWT_SECRET`, `riot.api.key`, `DB_PASSWORD`만 실제 값으로 채우세요.
-**DB 계정 3개와 RabbitMQ 계정은 예시 기본값 그대로 두면 됩니다** —
+`JWT_SECRET`, `riot.api.key`, `DB_PASSWORD`만 실제 값으로 채우세요. `llm.api.key`는 없어도(또는
+기본값 `dummy_key`) match가 규칙 기반 문구로 대체하므로 로컬에서는 비워둬도 됩니다.
+**DB 계정 4개와 RabbitMQ 계정은 예시 기본값 그대로 두면 됩니다** —
 `local-bootstrap.sql`이 같은 값으로 계정을 만듭니다.
 
 ---
@@ -101,7 +103,7 @@ cp application-secret-example.yml application-secret.yml
 `chat`이 필요로 합니다. 포트 두 개를 씁니다.
 
 ```
-AMQP  :5672    서비스 간 이벤트 (post ↔ chat ↔ user)
+AMQP  :5672    서비스 간 이벤트 (post ↔ chat ↔ user ↔ match)
 STOMP :61613   채팅 메시지 릴레이 (브라우저 ↔ chat)
 ```
 
@@ -136,15 +138,17 @@ riot/src/main/java/gg/duo/riot/RiotApplication.java     ← 먼저 (DB 불필요
 user/src/main/java/gg/duo/user/UserApplication.java
 post/src/main/java/gg/duo/post/PostApplication.java
 chat/src/main/java/gg/duo/chat/ChatApplication.java
+match/src/main/java/gg/duo/match/MatchApplication.java
 ```
 
-터미널이 편하면 탭 4개로:
+터미널이 편하면 탭 5개로:
 
 ```bash
 ./gradlew :riot:bootRun
 ./gradlew :user:bootRun
 ./gradlew :post:bootRun
 ./gradlew :chat:bootRun
+./gradlew :match:bootRun
 ```
 
 **성공 로그**
@@ -174,10 +178,14 @@ npm install && npm run dev          # localhost:5173
 `vite.config.js`가 경로별로 갈라줍니다. **프론트 코드는 바뀐 게 없습니다.**
 
 ```
-/api/auth · /api/users · /api/friends · /api/notifications · /uploads → user :8081
-/api/posts · /api/applications · /api/my                             → post :8082
-/api/chat · /ws                                                      → chat :8083
+/api/auth · /api/users · /api/friends · /api/notifications · /uploads → user  :8081
+/api/posts · /api/applications · /api/my                             → post  :8082
+/api/chat · /ws                                                      → chat  :8083
+/api/match                                                            → match :8085
 ```
+
+riot(:8084)은 여기 없습니다. 클러스터 내부 전용이라 브라우저가 직접 부르지 않고,
+라이엇 연동은 `/api/users/riot/*`로 user를 거쳐 갑니다.
 
 ---
 
@@ -188,9 +196,10 @@ curl -s localhost:8181/actuator/health    # user
 curl -s localhost:8182/actuator/health    # post
 curl -s localhost:8183/actuator/health    # chat
 curl -s localhost:8184/actuator/health    # riot
+curl -s localhost:8185/actuator/health    # match
 ```
 
-앱 포트는 **8081~8084**, health는 **8181~8184**입니다.
+앱 포트는 **8081~8085**, health는 **8181~8185**입니다.
 
 ### 동작 확인
 
@@ -227,8 +236,9 @@ select count(*) from user_svc.users;     -- ❌ permission denied  ← 이게 �
 | `Connection refused :5672` | RabbitMQ 포트 미공개 | `local.sh` 사용 (`-f local.yml` 필수) |
 | `ACCESS_REFUSED` (RabbitMQ) | 브로커 계정 불일치 | `rabbitmqctl change_password` |
 | 라이엇 연동 "연결할 수 없습니다" | riot 미기동 | **정상 동작.** riot 띄우면 됨 |
+| 매칭 검색이 502 "다른 서비스에서 정보를 가져오지 못했습니다" | match가 user/post에 못 물어봄 | user·post가 떠 있는지, `services.user.base-url`/`services.post.base-url`이 맞는지 확인 |
 
-마지막 항목이 중요합니다. **riot이 죽어도 로그인·글쓰기·채팅은 됩니다.** 서비스를 나눈 목적(장애 격리)이 동작하는 겁니다.
+마지막 두 항목이 중요합니다. **riot이나 match가 죽어도 로그인·글쓰기·채팅은 됩니다.** 서비스를 나눈 목적(장애 격리)이 동작하는 겁니다.
 
 ## 무시해도 되는 로그
 
