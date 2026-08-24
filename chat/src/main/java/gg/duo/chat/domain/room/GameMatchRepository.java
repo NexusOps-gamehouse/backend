@@ -1,6 +1,6 @@
-package com.example.gamehouse.repository;
+package gg.duo.chat.domain.room;
 
-import com.example.gamehouse.entity.GameMatch;
+import gg.duo.entity.GameMatch; // 패키지 경로 수정
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

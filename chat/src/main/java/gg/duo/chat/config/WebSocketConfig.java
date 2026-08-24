@@ -1,6 +1,6 @@
 package gg.duo.config;
 
-import gg.duo.security.JwtTokenProvider;
+import gg.duo.common.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;

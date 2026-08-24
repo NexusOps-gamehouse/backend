@@ -1,6 +1,6 @@
 package com.example.gamehouse.repository;
 
-import com.example.gamehouse.entity.HouseMember;
+import gg.duo.entity.HouseMember;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
