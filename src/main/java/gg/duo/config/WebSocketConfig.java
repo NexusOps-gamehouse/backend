@@ -27,13 +27,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/topic");
-        registry.setApplicationDestinationPrefixes("/app");
+        // /sub (또는 기존 /topic) 접두사 메시지 브로커 등록
+        registry.enableSimpleBroker("/sub", "/topic");
+        // 클라이언트에서 보낼 때 사용할 접두사
+        registry.setApplicationDestinationPrefixes("/pub", "/app");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws")
+        // 기존 /ws 엔드포인트와 House 전용 /ws-house 엔드포인트를 모두 지원
+        registry.addEndpoint("/ws", "/ws-house")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
     }
