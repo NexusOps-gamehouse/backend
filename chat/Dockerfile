@@ -34,6 +34,7 @@ RUN chmod +x gradlew
 RUN ./gradlew --no-daemon :chat:dependencies
 
 COPY common/src ./common/src
+COPY crew/src ./crew/src
 COPY chat/src ./chat/src
 RUN ./gradlew --no-daemon :chat:bootJar
 RUN cp chat/build/libs/*.jar /app/app.jar && mkdir -p /out/uploads

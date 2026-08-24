@@ -34,6 +34,7 @@ RUN chmod +x gradlew
 RUN ./gradlew --no-daemon :post:dependencies
 
 COPY common/src ./common/src
+COPY crew/src ./crew/src
 COPY post/src ./post/src
 RUN ./gradlew --no-daemon :post:bootJar
 RUN cp post/build/libs/*.jar /app/app.jar && mkdir -p /out/uploads
