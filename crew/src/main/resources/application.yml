@@ -1,0 +1,31 @@
+server:
+  port: 8080 # 서버 포트 설정 (필요시 변경)
+
+spring:
+  application:
+    name: crew-service
+
+  # JPA 및 DB 설정
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:duo_db}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update # 개발 환경: update (운영 환경: validate 권장)
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+        default_batch_fetch_size: 100
+    open-in-view: false
+
+# 로깅 설정
+logging:
+  level:
+    root: INFO
+    gg.duo: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
