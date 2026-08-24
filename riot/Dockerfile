@@ -34,8 +34,8 @@ RUN chmod +x gradlew
 RUN ./gradlew --no-daemon :riot:dependencies
 
 COPY common/src ./common/src
-COPY crew/src ./crew/src
 COPY riot/src ./riot/src
+COPY crew/src ./crew/src
 RUN ./gradlew --no-daemon :riot:bootJar
 RUN cp riot/build/libs/*.jar /app/app.jar && mkdir -p /out/uploads
 

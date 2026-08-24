@@ -1,6 +1,6 @@
 package gg.duo.chat.domain.room;
 
-import gg.duo.entity.GameMatch; // 패키지 경로 수정
+import gg.duo.crew.entity.GameMatch; // domain 제거
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
