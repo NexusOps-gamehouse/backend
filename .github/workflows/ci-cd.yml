@@ -9,9 +9,9 @@ name: backend-ci-cd
 # ⚠️ deploy job 은 현재 비활성이다. 아래 deploy job 주석 참고.
 on:
   pull_request:
-    branches: [develop]
+    branches: [develop, main]
   push:
-    branches: [develop]
+    branches: [develop, main]
 
 # 같은 브랜치에 커밋이 연달아 올라오면 이전 실행을 취소한다.
 # 단, push(=develop merge)는 이미지 publish 가 중간에 끊기면 태그가 어긋나므로
@@ -239,7 +239,7 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ matrix.service }}-develop
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ matrix.service }}-${{ github.ref_name }}
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_REPO }}:${{ matrix.service }}-${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
