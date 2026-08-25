@@ -26,6 +26,7 @@ COPY user/build.gradle   ./user/
 COPY post/build.gradle   ./post/
 COPY chat/build.gradle   ./chat/
 COPY riot/build.gradle   ./riot/
+COPY match/build.gradle ./match/
 COPY crew/build.gradle   ./crew/
 RUN chmod +x gradlew
 
