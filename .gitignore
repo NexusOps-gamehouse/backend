@@ -19,3 +19,6 @@ backup_*.sql
 _verify-tmp.tgz
 .DS_Store
 *.zip
+
+# 정리 대기 (로컬 전용)
+_to_delete/
