@@ -1,0 +1,918 @@
+{
+  "info": {
+    "name": "gamehouse - crew (House) API",
+    "description": "crew 서비스(:8086) 동작 확인용.\n\n## 쓰는 법\n1. 컬렉션 변수의 email / password 를 본인 계정으로 바꾼다\n2. `0. 사전 확인 > 헬스체크` 로 서비스가 떠 있는지 본다\n3. `1. 로그인` 을 실행하면 token 이 자동 저장된다 (이후 모든 요청에 자동 적용)\n4. `2. House > House 생성` 을 실행하면 houseId 가 자동 저장된다\n5. 나머지를 위에서 아래로 실행한다\n\n`3. 가입/멤버` 폴더는 **다른 계정**이 필요하다. 두 번째 계정으로 로그인해 가입 신청을 한 뒤,\ntargetUserId 변수에 그 계정의 userId 를 넣고 방장 계정으로 다시 로그인해서 승인/거절을 호출한다.\n\n에러 응답은 항상 `{\"message\": \"...\"}` 형태다.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "crewBase",
+      "value": "http://localhost:8086",
+      "type": "string"
+    },
+    {
+      "key": "userBase",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "mgmtBase",
+      "value": "http://localhost:8186",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "본인계정@example.com",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "본인비밀번호",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "myUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "houseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "targetUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "scheduleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "noticeId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. 사전 확인",
+      "item": [
+        {
+          "name": "헬스체크 (관리 포트 8186)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mgmtBase}}/actuator/health",
+              "host": [
+                "{{mgmtBase}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            },
+            "description": "crew 가 떠 있고 DB 연결이 살아 있는지. status 가 UP 이어야 한다.\n연결 자체가 안 되면 서비스가 안 떴거나 관리 포트가 다른 것이다.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "토큰 없이 목록 조회 (200 이어야 정상)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses"
+              ]
+            },
+            "description": "이 엔드포인트는 비로그인 허용이다. 200 + 배열이 나와야 한다.\n401 이 나오면 SecurityConfig 의 permitAll 이 안 먹은 것이다.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('배열', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "토큰 없이 생성 시도 (401 이어야 정상)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses"
+              ]
+            },
+            "description": "인증이 실제로 걸려 있는지 확인하는 음성 테스트. 401 + {\"message\":\"로그인이 필요합니다.\"} 가 나와야 한다.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"무단 생성 시도\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. 로그인",
+      "item": [
+        {
+          "name": "로그인 → token 저장",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userBase}}/api/auth/login",
+              "host": [
+                "{{userBase}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "user 서비스(:8081)를 호출한다. crew 는 이 토큰의 서명만 검증하므로 user 서비스가 떠 있어야 토큰을 얻을 수 있다.\n응답의 token 과 user.id 가 컬렉션 변수로 저장된다.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('token', b.token);",
+                  "pm.collectionVariables.set('myUserId', b.user.id);",
+                  "console.log('token 저장됨. myUserId =', b.user.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. House",
+      "item": [
+        {
+          "name": "House 생성 → houseId 저장",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses"
+              ]
+            },
+            "description": "name 만 필수. type 생략 시 PUBLIC, maxMembers 생략 시 20.\n만든 사람이 LEADER/APPROVED 로 자동 등록되고 CrewFormedEvent 가 발행된다.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"소환사의 쉼터\",\n  \"description\": \"매너를 먼저 보는 친목 House\",\n  \"type\": \"PUBLIC\",\n  \"maxMembers\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('houseId', b.id);",
+                  "pm.test('만든 사람이 LEADER/APPROVED 로 들어갔다', () => {",
+                  "  pm.expect(b.myRole).to.eql('LEADER');",
+                  "  pm.expect(b.myStatus).to.eql('APPROVED');",
+                  "});",
+                  "pm.test('PUBLIC 기본값', () => pm.expect(b.type).to.eql('PUBLIC'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "House 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses"
+              ]
+            },
+            "description": "Summary[] · 최신순. memberCount 는 APPROVED 만 센다."
+          },
+          "response": []
+        },
+        {
+          "name": "House 상세",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}"
+              ]
+            },
+            "description": "Detail. members 에는 APPROVED 만 담기고, 대기자는 pendingCount 로만 나온다."
+          },
+          "response": []
+        },
+        {
+          "name": "House 수정 (방장만)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}"
+              ]
+            },
+            "description": "부분 수정. null 인 필드는 기존 값 유지.\n방장이 아니면 403, 이미 가입한 인원보다 적은 정원이면 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"설명을 바꿔본다\",\n  \"maxMembers\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "내가 속한 House",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/my/houses",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "my",
+                "houses"
+              ]
+            },
+            "description": "APPROVED 인 것만. PENDING 인 House 는 안 나온다."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. 가입 / 멤버 (계정 2개 필요)",
+      "item": [
+        {
+          "name": "가입 신청 (2번 계정으로)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/join",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "join"
+              ]
+            },
+            "description": "PUBLIC 이면 즉시 APPROVED, PRIVATE 이면 PENDING.\n이미 신청/가입 상태면 409. 정원이 찼는데 PUBLIC 이면 409.\n\n※ 두 번째 계정으로 '1. 로그인' 을 다시 실행한 뒤 호출할 것."
+          },
+          "response": []
+        },
+        {
+          "name": "신청 취소 · 탈퇴",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/join",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "join"
+              ]
+            },
+            "description": "PENDING 이면 신청 취소, APPROVED 면 탈퇴. 방장은 403."
+          },
+          "response": []
+        },
+        {
+          "name": "가입 대기 목록 (관리자)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/join-requests",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "join-requests"
+              ]
+            },
+            "description": "LEADER / SUB_LEADER 만. PENDING 인 Member[] 를 준다.\n여기 나오는 userId 를 targetUserId 변수에 넣으면 아래 요청들이 동작한다."
+          },
+          "response": []
+        },
+        {
+          "name": "가입 승인",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/members/{{targetUserId}}/approve",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "members",
+                "{{targetUserId}}",
+                "approve"
+              ]
+            },
+            "description": "경로에 넣는 값은 memberId 가 아니라 userId 다.\n이미 승인됐거나 정원이 찼으면 409."
+          },
+          "response": []
+        },
+        {
+          "name": "가입 거절",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/members/{{targetUserId}}/reject",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "members",
+                "{{targetUserId}}",
+                "reject"
+              ]
+            },
+            "description": "status 가 REJECTED 로 바뀐다. 거절당한 사람은 다시 신청할 수 있다."
+          },
+          "response": []
+        },
+        {
+          "name": "역할 변경 (방장만)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/members/{{targetUserId}}/role",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "members",
+                "{{targetUserId}}",
+                "role"
+              ]
+            },
+            "description": "LEADER 로는 지정할 수 없다(400) — 방장 위임 API 는 아직 없다.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"SUB_LEADER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "강퇴",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/members/{{targetUserId}}",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "members",
+                "{{targetUserId}}"
+              ]
+            },
+            "description": "LEADER / SUB_LEADER 만. 부리더는 방장만 내보낼 수 있고 방장은 강퇴 불가(403)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. 일정",
+      "item": [
+        {
+          "name": "일정 생성 → scheduleId 저장",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/schedules",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "schedules"
+              ]
+            },
+            "description": "scheduledAt 은 타임존 없는 LocalDateTime 형식이다 (끝에 Z 를 붙이면 400).\n만든 사람은 자동으로 참가자에 들어간다.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"주말 5인 랭크\",\n  \"scheduledAt\": \"2026-08-30T21:00:00\",\n  \"maxParticipants\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set('scheduleId', b.id);",
+                  "pm.test('만든 사람이 자동 참가', () => pm.expect(b.joined).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "일정 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/schedules",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "schedules"
+              ]
+            },
+            "description": "scheduledAt 오름차순. 멤버가 아니면 403."
+          },
+          "response": []
+        },
+        {
+          "name": "일정 참가",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/schedules/{{scheduleId}}/participants",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "schedules",
+                "{{scheduleId}}",
+                "participants"
+              ]
+            },
+            "description": "정원 초과 또는 이미 참가 상태면 409."
+          },
+          "response": []
+        },
+        {
+          "name": "일정 참가 취소",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/schedules/{{scheduleId}}/participants",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "schedules",
+                "{{scheduleId}}",
+                "participants"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. 공지",
+      "item": [
+        {
+          "name": "공지 작성 → noticeId 저장",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/notices",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "notices"
+              ]
+            },
+            "description": "LEADER / SUB_LEADER 만. 일반 멤버가 호출하면 403.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"정기 모임 안내\",\n  \"content\": \"매주 토요일 밤 9시에 모입니다.\",\n  \"pinned\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('noticeId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "공지 목록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/notices",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "notices"
+              ]
+            },
+            "description": "고정(pinned) 먼저, 그다음 최신순."
+          },
+          "response": []
+        },
+        {
+          "name": "공지 고정 토글",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/notices/{{noticeId}}/pin",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "notices",
+                "{{noticeId}}",
+                "pin"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pinned\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "공지 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/notices/{{noticeId}}",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "notices",
+                "{{noticeId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. 조회",
+      "item": [
+        {
+          "name": "House 채팅 기록",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/houses/{{houseId}}/chat/messages",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "houses",
+                "{{houseId}}",
+                "chat",
+                "messages"
+              ]
+            },
+            "description": "최근 50개를 오래된 순으로. 멤버가 아니면 403.\n메시지를 보내려면 STOMP(/ws-house)를 써야 한다 — Postman 으로는 확인이 어렵다."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "함께할 사람 추천",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{crewBase}}/api/crew/recommendations/playmates",
+              "host": [
+                "{{crewBase}}"
+              ],
+              "path": [
+                "api",
+                "crew",
+                "recommendations",
+                "playmates"
+              ]
+            },
+            "description": "최근 7일 3판 이상 같이한 사람들의 users.id 배열.\n\n※ game_matches 는 match 서비스의 MatchFoundEvent 로 채워지는데 아직 발행되지 않는다.\n   따라서 지금은 항상 [] 가 정상이다. 에러가 아니다."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('배열 (지금은 비어있는 게 정상)', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

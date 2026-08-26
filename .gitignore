@@ -17,3 +17,6 @@ backup_*.sql
 
 # 검증용 임시 아카이브
 _verify-tmp.tgz
+
+# 정리 대기 (로컬 전용)
+_to_delete/

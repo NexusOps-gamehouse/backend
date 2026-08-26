@@ -1,10 +1,12 @@
 rootProject.name = 'duo-backend'
 
 // 서비스 경계 = 배포 단위. common 은 라이브러리이고 나머지는 각각 독립 부트 앱이다.
-// match / crew 는 기능 개발이 시작되면 여기에 추가한다.
+// 서비스가 늘면 여기와 각 Dockerfile 의 build.gradle COPY 목록을 함께 고쳐야 한다.
+// (Gradle 은 설정 단계에서 선언된 프로젝트 디렉터리를 전부 읽는다)
 include 'common'
 include 'user'
 include 'post'
 include 'chat'
 include 'riot'
 include 'match'
+include 'crew'

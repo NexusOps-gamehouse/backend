@@ -26,6 +26,7 @@ CREATE USER duo_user WITH PASSWORD 'local-user-pw';
 CREATE USER duo_post WITH PASSWORD 'local-post-pw';
 CREATE USER duo_chat WITH PASSWORD 'local-chat-pw';
 CREATE USER duo_match WITH PASSWORD 'local-match-pw';
+CREATE USER duo_crew WITH PASSWORD 'local-crew-pw';
 
 -- 스키마를 각 계정 소유로 만든다.
 --
@@ -38,6 +39,7 @@ CREATE SCHEMA user_svc AUTHORIZATION duo_user;
 CREATE SCHEMA post_svc AUTHORIZATION duo_post;
 CREATE SCHEMA chat_svc AUTHORIZATION duo_chat;
 CREATE SCHEMA match_svc AUTHORIZATION duo_match;
+CREATE SCHEMA crew_svc  AUTHORIZATION duo_crew;
 
 -- 접속하면 자기 스키마를 먼저 보게 한다.
 -- Hibernate 의 default_schema 는 Hibernate 가 만든 쿼리에만 적용되므로,
@@ -46,6 +48,7 @@ ALTER ROLE duo_user SET search_path TO user_svc;
 ALTER ROLE duo_post SET search_path TO post_svc;
 ALTER ROLE duo_chat SET search_path TO chat_svc;
 ALTER ROLE duo_match SET search_path TO match_svc;
+ALTER ROLE duo_crew  SET search_path TO crew_svc;
 
 -- 새 테이블이 실수로 public 에 만들어지면 경계 밖에 놓인다. 아무도 못 만들게 막는다.
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
@@ -58,4 +61,4 @@ SELECT nspname AS 스키마, pg_get_userbyid(nspowner) AS 소유자
 FROM pg_namespace WHERE nspname LIKE '%_svc' ORDER BY 1;
 
 \echo ''
-\echo '완료. 이제 user / post / chat 을 실행하면 각자 자기 스키마에 테이블을 만든다.'
+\echo '완료. 이제 user / post / chat / match / crew 를 실행하면 각자 자기 스키마에 테이블을 만든다.'
