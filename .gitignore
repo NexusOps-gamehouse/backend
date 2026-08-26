@@ -17,3 +17,5 @@ backup_*.sql
 
 # 검증용 임시 아카이브
 _verify-tmp.tgz
+.DS_Store
+*.zip
