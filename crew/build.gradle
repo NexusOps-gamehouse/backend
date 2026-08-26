@@ -1,0 +1,20 @@
+/*
+ * crew(House) 서비스.
+ *
+ * 자기 스키마(crew_svc)를 소유하므로 JPA 와 DB 드라이버가 필요하다.
+ * House 채팅이 STOMP 라서 websocket 스타터도 함께 쓴다.
+ *
+ * web / security / validation / actuator / micrometer / jjwt / amqp 는
+ * common 이 api 의존성으로 물려준다 — 여기서 다시 선언하지 않는다.
+ *
+ * ⚠️ 드라이버가 mysql-connector-j 로 되어 있었다. application.yml 의 DB_URL 은
+ *    jdbc:postgresql:// 이라, 그대로 두면 부팅 때 드라이버를 못 찾아 죽는다.
+ */
+apply plugin: 'org.springframework.boot'
+
+dependencies {
+    implementation project(':common')
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    runtimeOnly 'org.postgresql:postgresql'
+}
