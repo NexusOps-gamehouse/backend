@@ -1,0 +1,93 @@
+server:
+  port: ${SERVER_PORT:8086}
+
+spring:
+  application:
+    name: gamehouse-crew
+  # [수정 1] 값에 콜론(:)이 들어가므로 반드시 리스트(-) + 따옴표로 쓴다.
+  # 하이픈이 빠지면 SnakeYAML 이 두 줄을 하나의 키로 읽어
+  # "could not find expected ':'" 로 죽는다.
+  config:
+    import:
+      - "optional:classpath:application-secret.yml"
+      - "optional:file:./application-secret.yml"
+      - "optional:file:../application-secret.yml"
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_AMQP_PORT:5672}
+    username: ${RABBITMQ_USERNAME:appuser}
+    # [수정 2] post/match 와 동일하게 로컬 기본값을 준다.
+    # 없으면 secret 파일을 안 만든 사람은 곧바로 부팅 실패한다.
+    password: ${RABBITMQ_PASSWORD:apppass}
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/duo}
+    # [수정 3] post 서비스 계정을 그대로 복사해 쓰고 있었다.
+    # 서비스별 전용 계정 규칙(USER_/POST_/CHAT_/MATCH_DB_*)에 맞춰 CREW_ 로 바꾼다.
+    username: ${CREW_DB_USERNAME:duo_crew}
+    password: ${CREW_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        # [수정 4] 여기가 비어 있었다.
+        # 없으면 테이블이 public 스키마로 가고, duo_crew 는 public 권한이 없어
+        # 부팅 직후 permission denied 로 실패한다.
+        default_schema: crew_svc
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+app:
+  cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+services:
+  user:
+    base-url: ${USER_SERVICE_URL:http://localhost:8081}
+  post:
+    base-url: ${POST_SERVICE_URL:http://localhost:8082}
+  chat:
+    base-url: ${CHAT_SERVICE_URL:http://localhost:8083}
+  riot:
+    base-url: ${RIOT_SERVICE_URL:http://localhost:8084}
+  match:
+    base-url: ${MATCH_SERVICE_URL:http://localhost:8085}
+  crew:
+    base-url: ${CREW_SERVICE_URL:http://localhost:8086}
+
+management:
+  server:
+    # [수정 5] 8182 는 post 서비스의 관리 포트다.
+    # 규칙이 808N -> 818N 이므로 crew(8086)는 8186.
+    # 그대로 두면 post 와 같이 띄울 때 포트 충돌로 죽는다.
+    port: 8186
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      # [수정 6] gamehouse-post 로 되어 있었다.
+      # 이대로면 crew 의 메트릭이 Prometheus 에서 post 로 집계된다.
+      application: gamehouse-crew
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true    # 우리가 받는 요청
+        http.client.requests: true    # 우리가 보내는 요청 (서비스 간 호출 포함)
+      slo:
+        http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
+        http.client.requests: 100ms, 300ms, 500ms, 1s, 2s, 5s
+      minimum-expected-value:
+        http.server.requests: 10ms
+      maximum-expected-value:
+        http.server.requests: 10s
+  observations:
+    key-values:
+      env: ${ENV_NAME:local}
