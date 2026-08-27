@@ -235,13 +235,14 @@ public class HouseService {
 
     /** 다른 서비스(일정·공지·채팅)가 쓰는 멤버십 검사. */
     @Transactional(readOnly = true)
-    public void requireApprovedMember(Long houseId, Long userId) {
+    public HouseMember requireApprovedMember(Long houseId, Long userId) {
         if (userId == null) throw new BusinessException(ErrorCode.UNAUTHORIZED);
         HouseMember member = houseMemberRepository.findByHouseIdAndUserId(houseId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN, "House 멤버가 아닙니다."));
         if (member.getStatus() != JoinStatus.APPROVED) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "가입 승인 대기 중입니다.");
         }
+        return member;
     }
 
     /** 공지 작성 등 관리 권한이 필요한 자리에서 쓴다. */

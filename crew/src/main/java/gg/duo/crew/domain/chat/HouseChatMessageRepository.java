@@ -13,4 +13,6 @@ public interface HouseChatMessageRepository extends JpaRepository<HouseChatMessa
 
     /** 최근 메시지부터 50개. 화면에서 뒤집어 쓴다. */
     List<HouseChatMessage> findTop50ByHouseIdOrderByIdDesc(Long houseId);
+
+    HouseChatMessage findTopByHouseIdAndSenderIdOrderByIdDesc(Long houseId, Long senderId);
 }

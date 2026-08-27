@@ -5,6 +5,7 @@ import gg.duo.crew.domain.house.HouseMember;
 import gg.duo.crew.domain.house.HouseType;
 import gg.duo.crew.domain.house.JoinStatus;
 import gg.duo.crew.domain.house.MemberRole;
+import gg.duo.crew.domain.house.MemberRank;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 
@@ -81,11 +82,13 @@ public final class HouseDto {
     }
 
     public record Member(Long memberId, Long userId, MemberRole role,
-                         JoinStatus status, Instant joinedAt, Instant requestedAt) {
+                         JoinStatus status, Instant joinedAt, Instant requestedAt,
+                         MemberRank rank, int gameCount, int chatCount) {
 
         public static Member of(HouseMember m) {
             return new Member(m.getId(), m.getUserId(), m.getRole(), m.getStatus(),
-                    m.getJoinedAt(), m.getRequestedAt());
+                    m.getJoinedAt(), m.getRequestedAt(), m.effectiveRank(),
+                    m.getGameCount(), m.getChatCount());
         }
     }
 

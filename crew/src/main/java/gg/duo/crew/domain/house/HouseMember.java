@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
+import gg.duo.crew.service.HouseMemberRankPolicy;
+
 @Entity
 @Table(
         name = "house_members",
@@ -38,6 +40,17 @@ public class HouseMember {
     @Column(nullable = false, length = 16)
     private JoinStatus status;
 
+    /** 표시 계급. 기존 행은 null일 수 있으며, null은 legacy MEMBER로 취급한다. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "member_rank", length = 16)
+    private MemberRank rank;
+
+    @Column(nullable = false, columnDefinition = "integer default 0")
+    private int gameCount;
+
+    @Column(nullable = false, columnDefinition = "integer default 0")
+    private int chatCount;
+
     @Column(nullable = false, updatable = false)
     private Instant requestedAt;
 
@@ -48,6 +61,9 @@ public class HouseMember {
         this.userId = userId;
         this.role = role != null ? role : MemberRole.MEMBER;
         this.status = status != null ? status : JoinStatus.PENDING;
+        this.rank = MemberRank.NEW_MEMBER;
+        this.gameCount = 0;
+        this.chatCount = 0;
     }
 
     @PrePersist
@@ -84,5 +100,28 @@ public class HouseMember {
 
     public void changeRole(MemberRole role) {
         this.role = role;
+    }
+
+    public MemberRank effectiveRank() {
+        return rank == MemberRank.NEW_MEMBER ? MemberRank.NEW_MEMBER : MemberRank.MEMBER;
+    }
+
+    /** 서버에서 저장이 끝난 House 채팅 1건을 활동으로 반영한다. */
+    public void recordChatActivity() {
+        if (chatCount < Integer.MAX_VALUE) chatCount++;
+        promoteIfQualified();
+    }
+
+    /** 실제 완료된 House 게임 이벤트가 연결될 때 호출할 도메인 연산. */
+    public void recordCompletedGame() {
+        if (gameCount < Integer.MAX_VALUE) gameCount++;
+        promoteIfQualified();
+    }
+
+    private void promoteIfQualified() {
+        if (rank == MemberRank.NEW_MEMBER
+                && HouseMemberRankPolicy.qualifiesForRegularMember(gameCount, chatCount)) {
+            rank = MemberRank.MEMBER;
+        }
     }
 }
