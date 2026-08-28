@@ -13,7 +13,7 @@ import java.security.Principal;
  * House 채팅 (STOMP).
  *
  *   보내기 : /pub/house/chat
- *   받기   : /sub/house/{houseId}
+ *   받기   : /topic/crew.houses.{houseId}
  */
 @Controller
 @RequiredArgsConstructor
@@ -30,7 +30,7 @@ public class HouseChatController {
         // 1. 멤버 검증 및 DB 저장
         ChatMessageDto saved = houseChatService.save(message, senderId);
 
-        // 2. STOMP Broker Relay(RabbitMQ)를 통해 해당 하우스 구독자들에게 브로드캐스트
-        messagingTemplate.convertAndSend("/sub/house/" + saved.getHouseId(), saved);
+        // 2. RabbitMQ 규격에 맞춘 /topic/ 주소로 브로드캐스트
+        messagingTemplate.convertAndSend("/topic/crew.houses." + saved.getHouseId(), saved);
     }
 }

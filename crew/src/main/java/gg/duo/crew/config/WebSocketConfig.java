@@ -54,8 +54,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // 클라이언트가 메시지를 보낼 때 사용할 prefix
         registry.setApplicationDestinationPrefixes("/pub");
 
-        // External RabbitMQ STOMP Relay 설정 (/sub, /topic, /queue 구독 허용)
-        registry.enableStompBrokerRelay("/sub", "/topic", "/queue")
+        // /topic Prefix만 RabbitMQ STOMP Relay로 전달
+        registry.enableStompBrokerRelay("/topic")
                 .setRelayHost(rabbitHost)
                 .setRelayPort(stompPort)
                 .setClientLogin(rabbitUser)
