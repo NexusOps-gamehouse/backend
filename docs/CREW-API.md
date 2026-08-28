@@ -400,7 +400,7 @@ GET /api/crew/recommendations/playmates
 연결   http://localhost:8086/ws-house        (SockJS)
 헤더   Authorization: Bearer <JWT>            (CONNECT 프레임)
 보내기 SEND /pub/house/chat
-받기   SUBSCRIBE /sub/house/{houseId}
+받기   SUBSCRIBE /topic/crew.houses.{houseId}
 ```
 SEND 바디
 ```json
@@ -487,7 +487,7 @@ Response
              Request  : houseId (기록 조회)
              Response : ChatMessage[]
                     ↓
-             STOMP SUBSCRIBE /sub/house/{houseId}
+             STOMP SUBSCRIBE /topic/crew.houses.{houseId}
              STOMP SEND      /pub/house/chat
 ```
 

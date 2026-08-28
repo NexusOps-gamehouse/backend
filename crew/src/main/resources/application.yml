@@ -40,6 +40,14 @@ spring:
         # 부팅 직후 permission denied 로 실패한다.
         default_schema: crew_svc
 
+# 서비스 간 이벤트 배달에 사용하는 spring.rabbitmq(AMQP :5672)와
+# House 채팅 메시지 릴레이에 사용하는 RabbitMQ STOMP(:61613)는 포트가 다르다.
+rabbitmq:
+  host: ${RABBITMQ_HOST:localhost}
+  port: ${RABBITMQ_STOMP_PORT:61613}
+  username: ${RABBITMQ_USERNAME:appuser}
+  password: ${RABBITMQ_PASSWORD:apppass}
+
 jwt:
   secret: ${JWT_SECRET}
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}

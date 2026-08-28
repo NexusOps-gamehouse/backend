@@ -37,16 +37,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtTokenProvider jwtTokenProvider;
 
-    @Value("${spring.rabbitmq.host:localhost}")
+    @Value("${rabbitmq.host}")
     private String rabbitHost;
 
-    @Value("${spring.rabbitmq.stomp.port:61613}")
+    @Value("${rabbitmq.port}")
     private int stompPort;
 
-    @Value("${spring.rabbitmq.username:appuser}")
+    @Value("${rabbitmq.username}")
     private String rabbitUser;
 
-    @Value("${spring.rabbitmq.password:apppass}")
+    @Value("${rabbitmq.password}")
     private String rabbitPass;
 
     @Override
