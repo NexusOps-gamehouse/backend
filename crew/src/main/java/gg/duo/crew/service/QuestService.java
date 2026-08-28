@@ -2,8 +2,11 @@ package gg.duo.crew.service;
 
 import gg.duo.crew.domain.HouseQuest;
 import gg.duo.crew.domain.QuestType;
+import gg.duo.crew.domain.house.House;
 import gg.duo.crew.domain.house.HouseRepository;
+import gg.duo.crew.dto.HouseQuestResponseDto;
 import gg.duo.crew.repository.HouseQuestRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -13,10 +16,11 @@ import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
-import jakarta.annotation.PostConstruct;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class QuestService {
 
     private final HouseQuestRepository questRepository;
@@ -34,10 +38,15 @@ public class QuestService {
                 .withHour(23).withMinute(59).withSecond(59).withNano(999999999);
     }
 
-    public List<HouseQuest> getWeeklyQuests(Long houseId) {
-        return questRepository.findByHouseIdAndWeekStartDateBetween(
+    // 엔티티 대신 DTO 리스트를 반환
+    public List<HouseQuestResponseDto> getWeeklyQuests(Long houseId) {
+        List<HouseQuest> quests = questRepository.findByHouseIdAndWeekStartDateBetween(
                 houseId, getStartOfCurrentWeek(), getEndOfCurrentWeek()
         );
+
+        return quests.stream()
+                .map(HouseQuestResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     @PostConstruct
@@ -72,15 +81,17 @@ public class QuestService {
             throw new IllegalStateException("보상을 수령할 수 없는 상태입니다.");
         }
 
+        House house = houseRepository.findById(houseId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 하우스입니다."));
+
+        QuestType questType = quest.getQuestType();
+
+        // 1. 실제 House에 XP 및 HC 적립
+        if (questType != null) {
+            house.addReward(questType.getRewardXp(), questType.getRewardHc());
+        }
+
+        // 2. 보상 수령 처리
         quest.claimReward();
-
-        List<HouseQuest> weeklyQuests = questRepository.findByHouseIdAndWeekStartDateBetween(
-                houseId, getStartOfCurrentWeek(), getEndOfCurrentWeek()
-        );
-        boolean allCompleted = weeklyQuests.stream().allMatch(HouseQuest::isCompleted);
-
-        houseRepository.findById(houseId).ifPresent(house -> {
-            // 추후 구현
-        });
     }
 }

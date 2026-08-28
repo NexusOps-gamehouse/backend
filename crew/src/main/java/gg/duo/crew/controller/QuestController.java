@@ -1,6 +1,6 @@
 package gg.duo.crew.controller;
 
-import gg.duo.crew.domain.HouseQuest;
+import gg.duo.crew.dto.HouseQuestResponseDto;
 import gg.duo.crew.service.QuestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +16,9 @@ public class QuestController {
     private final QuestService questService;
 
     @GetMapping
-    public ResponseEntity<List<HouseQuest>> getWeeklyQuests(@PathVariable Long houseId) {
-        List<HouseQuest> quests = questService.getWeeklyQuests(houseId);
-        return ResponseEntity.ok(quests);
+    public ResponseEntity<List<HouseQuestResponseDto>> getWeeklyQuests(@PathVariable Long houseId) {
+        List<HouseQuestResponseDto> response = questService.getWeeklyQuests(houseId);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{questId}/claim")
