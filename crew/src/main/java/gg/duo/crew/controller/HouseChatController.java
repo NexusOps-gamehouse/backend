@@ -27,10 +27,10 @@ public class HouseChatController {
         // WebSocketConfig 에서 JWT 로 검증한 Principal 사용 (보안)
         Long senderId = Long.valueOf(principal.getName());
 
-        // 1. 멤버 검증 및 DB 저장
+        // 메시지 저장 시 유저의 역할(방장/부방장/멤버)도 함께 DTO에 채워짐
         ChatMessageDto saved = houseChatService.save(message, senderId);
 
-        // 2. RabbitMQ 규격에 맞춘 /topic/ 주소로 브로드캐스트
+        // RabbitMQ 규격에 맞춘 /topic/ 주소로 브로드캐스트
         messagingTemplate.convertAndSend("/topic/crew.houses." + saved.getHouseId(), saved);
     }
 }
