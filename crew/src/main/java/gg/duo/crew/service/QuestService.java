@@ -1,10 +1,9 @@
 package gg.duo.crew.service;
 
-import gg.duo.crew.domain.house.House; // house 패키지 경로 추가
 import gg.duo.crew.domain.HouseQuest;
 import gg.duo.crew.domain.QuestType;
+import gg.duo.crew.domain.house.HouseRepository;
 import gg.duo.crew.repository.HouseQuestRepository;
-import gg.duo.crew.repository.HouseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -14,6 +13,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import jakarta.annotation.PostConstruct;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +28,19 @@ public class QuestService {
                 .withHour(0).withMinute(0).withSecond(0).withNano(0);
     }
 
+    public LocalDateTime getEndOfCurrentWeek() {
+        return LocalDateTime.now()
+                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+                .withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+    }
+
+    public List<HouseQuest> getWeeklyQuests(Long houseId) {
+        return questRepository.findByHouseIdAndWeekStartDateBetween(
+                houseId, getStartOfCurrentWeek(), getEndOfCurrentWeek()
+        );
+    }
+
+    @PostConstruct
     @Scheduled(cron = "0 0 0 * * MON")
     @Transactional
     public void resetWeeklyQuests() {
@@ -42,7 +55,9 @@ public class QuestService {
     @Transactional
     public void updateQuestProgress(Long houseId, QuestType type, int increment) {
         LocalDateTime weekStart = getStartOfCurrentWeek();
-        HouseQuest quest = questRepository.findByHouseIdAndQuestTypeAndWeekStartDate(houseId, type, weekStart)
+        LocalDateTime weekEnd = getEndOfCurrentWeek();
+
+        HouseQuest quest = questRepository.findByHouseIdAndQuestTypeAndWeekStartDateBetween(houseId, type, weekStart, weekEnd)
                 .orElseGet(() -> questRepository.save(new HouseQuest(houseId, type, weekStart)));
 
         quest.addProgress(increment);
@@ -59,11 +74,13 @@ public class QuestService {
 
         quest.claimReward();
 
-        List<HouseQuest> weeklyQuests = questRepository.findByHouseIdAndWeekStartDate(houseId, quest.getWeekStartDate());
+        List<HouseQuest> weeklyQuests = questRepository.findByHouseIdAndWeekStartDateBetween(
+                houseId, getStartOfCurrentWeek(), getEndOfCurrentWeek()
+        );
         boolean allCompleted = weeklyQuests.stream().allMatch(HouseQuest::isCompleted);
 
         houseRepository.findById(houseId).ifPresent(house -> {
-            // 추후 필요 시 House 엔티티 메서드 연결
+            // 추후 구현
         });
     }
 }

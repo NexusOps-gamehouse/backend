@@ -18,6 +18,8 @@ public class SecurityConfig extends SecurityBaseConfig {
             AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
         auth.requestMatchers(
                 "/api/auth/**",
+                "/api/users/signup",       // 회원가입 허용 추가
+                "/api/users/login",        // 로그인 허용 추가
                 "/api/users/find-email",
                 "/api/users/reset-password",
                 "/uploads/**",

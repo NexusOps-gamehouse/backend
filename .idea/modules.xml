@@ -2,12 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/chat/duo-backend.chat.main.iml" filepath="$PROJECT_DIR$/.idea/modules/chat/duo-backend.chat.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/duo-backend.common.main.iml" filepath="$PROJECT_DIR$/.idea/modules/common/duo-backend.common.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/match/duo-backend.match.main.iml" filepath="$PROJECT_DIR$/.idea/modules/match/duo-backend.match.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/post/duo-backend.post.main.iml" filepath="$PROJECT_DIR$/.idea/modules/post/duo-backend.post.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/riot/duo-backend.riot.main.iml" filepath="$PROJECT_DIR$/.idea/modules/riot/duo-backend.riot.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user/duo-backend.user.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user/duo-backend.user.main.iml" />
     </modules>
   </component>
 </project>

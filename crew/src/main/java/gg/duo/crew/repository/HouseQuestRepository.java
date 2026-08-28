@@ -8,6 +8,12 @@ import java.util.List;
 import java.util.Optional;
 
 public interface HouseQuestRepository extends JpaRepository<HouseQuest, Long> {
-    List<HouseQuest> findByHouseIdAndWeekStartDate(Long houseId, LocalDateTime weekStartDate);
-    Optional<HouseQuest> findByHouseIdAndQuestTypeAndWeekStartDate(Long houseId, QuestType questType, LocalDateTime weekStartDate);
+
+    List<HouseQuest> findByHouseIdAndWeekStartDateBetween(
+            Long houseId, LocalDateTime start, LocalDateTime end
+    );
+
+    Optional<HouseQuest> findByHouseIdAndQuestTypeAndWeekStartDateBetween(
+            Long houseId, QuestType questType, LocalDateTime start, LocalDateTime end
+    );
 }

@@ -1,7 +1,6 @@
 package gg.duo.crew.controller;
 
 import gg.duo.crew.domain.HouseQuest;
-import gg.duo.crew.repository.HouseQuestRepository;
 import gg.duo.crew.service.QuestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,13 +14,10 @@ import java.util.List;
 public class QuestController {
 
     private final QuestService questService;
-    private final HouseQuestRepository questRepository;
 
     @GetMapping
     public ResponseEntity<List<HouseQuest>> getWeeklyQuests(@PathVariable Long houseId) {
-        List<HouseQuest> quests = questRepository.findByHouseIdAndWeekStartDate(
-                houseId, questService.getStartOfCurrentWeek()
-        );
+        List<HouseQuest> quests = questService.getWeeklyQuests(houseId);
         return ResponseEntity.ok(quests);
     }
 
