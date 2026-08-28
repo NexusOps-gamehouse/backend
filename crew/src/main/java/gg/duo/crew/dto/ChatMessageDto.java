@@ -23,6 +23,7 @@ public class ChatMessageDto {
     private Long houseId;
     private Long senderId;
     private String senderName;
+    private String senderRole;
     private String message;
     private LocalDateTime timestamp;
 }

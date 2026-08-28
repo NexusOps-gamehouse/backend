@@ -35,9 +35,15 @@ public class HouseChatService {
         List<HouseChatMessage> found =
                 new ArrayList<>(chatMessageRepository.findTop50ByHouseIdOrderByIdDesc(houseId));
         java.util.Collections.reverse(found);
+
         return found.stream()
-                .map(m -> new ChatMessageDto(m.getHouseId(), m.getSenderId(), m.getSenderName(),
-                        m.getMessage(), m.getTimestamp()))
+                .map(m -> ChatMessageDto.builder()
+                        .houseId(m.getHouseId())
+                        .senderId(m.getSenderId())
+                        .senderName(m.getSenderName())
+                        .message(m.getMessage())
+                        .timestamp(m.getTimestamp())
+                        .build())
                 .toList();
     }
 }
