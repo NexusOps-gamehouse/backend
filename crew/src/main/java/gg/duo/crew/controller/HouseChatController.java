@@ -14,10 +14,6 @@ import java.security.Principal;
  *
  *   보내기 : /pub/house/chat
  *   받기   : /sub/house/{houseId}
- *
- * 원본 코드는 페이로드의 senderId 를 그대로 믿고 저장했다. 클라이언트가 보낸
- * 값이라 남의 id 를 적어 보낼 수 있었다. 여기서는 CONNECT 때 JWT 로 확인해
- * 세션에 심어둔 Principal 을 쓴다(WebSocketConfig 참고).
  */
 @Controller
 @RequiredArgsConstructor
@@ -28,12 +24,13 @@ public class HouseChatController {
 
     @MessageMapping("/house/chat")
     public void sendMessage(ChatMessageDto message, Principal principal) {
+        // WebSocketConfig 에서 JWT 로 검증한 Principal 사용 (보안)
         Long senderId = Long.valueOf(principal.getName());
 
-        // 저장 안에서 House 멤버인지도 확인한다. 멤버가 아니면 예외가 나고
-        // 브로드캐스트까지 가지 않는다.
+        // 1. 멤버 검증 및 DB 저장
         ChatMessageDto saved = houseChatService.save(message, senderId);
 
+        // 2. STOMP Broker Relay(RabbitMQ)를 통해 해당 하우스 구독자들에게 브로드캐스트
         messagingTemplate.convertAndSend("/sub/house/" + saved.getHouseId(), saved);
     }
 }

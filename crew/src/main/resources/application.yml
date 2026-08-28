@@ -20,6 +20,9 @@ spring:
     # [수정 2] post/match 와 동일하게 로컬 기본값을 준다.
     # 없으면 secret 파일을 안 만든 사람은 곧바로 부팅 실패한다.
     password: ${RABBITMQ_PASSWORD:apppass}
+    stomp:
+      port: ${RABBITMQ_STOMP_PORT:61613} # RabbitMQ STOMP 플러그인 포트
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/duo}
     # [수정 3] post 서비스 계정을 그대로 복사해 쓰고 있었다.
