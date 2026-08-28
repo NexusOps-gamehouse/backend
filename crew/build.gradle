@@ -8,7 +8,7 @@
  * common 이 api 의존성으로 물려준다 — 여기서 다시 선언하지 않는다.
  *
  * ⚠️ 드라이버가 mysql-connector-j 로 되어 있었다. application.yml 의 DB_URL 은
- *    jdbc:postgresql:// 이라, 그대로 두면 부팅 때 드라이버를 못 찾아 죽는다.
+ * jdbc:postgresql:// 이라, 그대로 두면 부팅 때 드라이버를 못 찾아 죽는다.
  */
 apply plugin: 'org.springframework.boot'
 
@@ -16,5 +16,9 @@ dependencies {
     implementation project(':common')
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+    // RabbitMQ STOMP External Broker(Relay) 연동을 위한 Netty 라이브러리 추가
+    implementation 'io.projectreactor.netty:reactor-netty'
+
     runtimeOnly 'org.postgresql:postgresql'
 }
