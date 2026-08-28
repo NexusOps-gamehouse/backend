@@ -2,7 +2,7 @@ name: backend-ci-cd
 
 # feature/* -> develop PR 시 검증, develop merge 시 이미지 publish.
 #
-# ⚠️ MSA 분리 이후 이미지가 1개 → 5개다(user/post/chat/riot/match).
+# ⚠️ MSA 분리 이후 이미지가 1개 → 4개다(user/post/chat/riot).
 #    빌드·스모크 테스트·publish 모두 matrix 로 서비스마다 따로 돈다.
 #    common 은 라이브러리라 이미지가 없다.
 #
@@ -29,7 +29,7 @@ env:
   # Docker Hub private repo 1개(nexusops/gamehouse)를 backend/frontend가 공유하고,
   # 앱 구분은 태그 접두어로 한다.
   #   before  backend-develop
-  #   after   user-develop / post-develop / chat-develop / riot-develop / match-develop
+  #   after   user-develop / post-develop / chat-develop / riot-develop
   IMAGE_REPO: gamehouse
 
 jobs:
@@ -62,7 +62,7 @@ jobs:
   # 이 실패는 컨테이너를 실제로 띄워야만 잡히므로 merge 전에 배치한다.
   #
   # 서비스마다 의존 라이브러리가 달라(webflux / websocket / amqp) 필요한 JDK
-  # 모듈도 다르다. 그래서 5개를 각각 띄워봐야 한다.
+  # 모듈도 다르다. 그래서 4개를 각각 띄워봐야 한다.
   # fail-fast: false — 하나가 깨져도 나머지 결과를 봐야 원인이 좁혀진다.
   # ---------------------------------------------------------------
   image-check:
@@ -84,6 +84,8 @@ jobs:
             mgmt_port: 8184
           - service: match
             mgmt_port: 8185
+          - service: crew
+            mgmt_port: 8186
 
     # user/post/chat 은 DB 없이 기동하지 않는다(ddl-auto: update).
     # riot 은 소유 테이블이 0개라 필요 없지만, service 컨테이너는 job 단위라
@@ -158,10 +160,10 @@ jobs:
       # DAST: 실제로 컨테이너를 띄워 동작을 확인한다.
       #
       # actuator/health 를 쓰는 이유: 서비스마다 공개 엔드포인트가 다른데
-      # (post 는 GET /api/posts, user 는 없음) health 는 다섯 다 같은 자리에 있다.
+      # (post 는 GET /api/posts, user 는 없음) health 는 넷 다 같은 자리에 있다.
       # 게다가 DB·RabbitMQ 커넥션까지 함께 확인해준다 — 하나라도 끊겨 있으면 503 이다.
       #
-      # 환경변수는 다섯에 모두 같은 것을 넘긴다. 자기가 안 쓰는 값은 무시된다.
+      # 환경변수는 넷에 모두 같은 것을 넘긴다. 자기가 안 쓰는 값은 무시된다.
       # (riot 은 DB·이벤트를 아예 쓰지 않아 대부분이 무시된다)
       - name: Smoke test running container
         run: |
@@ -171,6 +173,7 @@ jobs:
             -e POST_DB_USERNAME=duo_post -e POST_DB_PASSWORD=local-post-pw \
             -e CHAT_DB_USERNAME=duo_chat -e CHAT_DB_PASSWORD=local-chat-pw \
             -e MATCH_DB_USERNAME=duo_match -e MATCH_DB_PASSWORD=local-match-pw \
+            -e CREW_DB_USERNAME=duo_crew -e CREW_DB_PASSWORD=local-crew-pw \
             -e RABBITMQ_HOST=localhost \
             -e RABBITMQ_USERNAME=appuser -e RABBITMQ_PASSWORD=apppass \
             -e JWT_SECRET=ci-only-throwaway-secret-key-do-not-use-in-prod \
@@ -205,7 +208,7 @@ jobs:
   # 위 두 게이트를 모두 통과한 커밋만 Docker Hub로 나간다.
   # image-check가 서비스별 캐시를 채워두므로 여기서의 build는 대부분 캐시 히트다.
   #
-  # 태그가 5벌이 된다. 기존 backend-develop 태그는 더 이상 갱신되지 않는다.
+  # 태그가 4벌이 된다. 기존 backend-develop 태그는 더 이상 갱신되지 않는다.
   # ---------------------------------------------------------------
   publish:
     name: publish (${{ matrix.service }})
@@ -217,7 +220,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [user, post, chat, riot, match]
+        service: [user, post, chat, riot, match, crew]
 
     steps:
       - uses: actions/checkout@v4
@@ -256,11 +259,9 @@ jobs:
   #
   # [되살리는 조건] — 4단계 배포 준비
   #   1. RDS 에 db/migration/V1__split_schemas.sql + V2 적용
-  #   2. compose(또는 k8s 매니페스트)를 서비스 5개 + RabbitMQ 로 확장
-  #      (match 의 MatchFoundEvent 발행에 브로커가 필요하다)
+  #   2. compose(또는 k8s 매니페스트)를 서비스 4개로 확장
   #   3. Ingress/nginx 경로 라우팅 (vite.config.js 규칙과 동일하게)
-  #      /api/match → match  (riot 은 내부 전용이라 Ingress 에 넣지 않는다)
-  #   4. 배포용 환경변수 추가 — USER/POST/CHAT/MATCH_DB_USERNAME·PASSWORD
+  #   4. 배포용 환경변수 추가 — USER/POST/CHAT_DB_USERNAME·PASSWORD
   #   위 넷이 끝나면 아래 if 를 원래대로 되돌린다.
   #     if: github.event_name == 'push'
   # ---------------------------------------------------------------
