@@ -23,6 +23,7 @@ public class ShopService {
     private final HouseRepository houseRepository;
     private final HouseService houseService;
 
+    // 1. 아이템 구매
     @Transactional
     public void buyItem(Long houseId, Long userId, ShopPurchaseRequestDto request) {
         houseService.requireApprovedMember(houseId, userId);
@@ -33,7 +34,6 @@ public class ShopService {
         ShopItem item = shopItemRepository.findById(request.getItemId())
                 .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다."));
 
-        // 👈 getPrice() -> getPriceHc() 수정
         long totalCost = (long) item.getPriceHc() * request.getQuantity();
 
         if (house.getHc() < totalCost) {
@@ -42,18 +42,27 @@ public class ShopService {
 
         house.deductHc(totalCost);
 
-        Inventory inventory = inventoryRepository.findByHouseIdAndShopItemId(houseId, item.getId())
-                .orElseGet(() -> new Inventory(userId, houseId, item)); // 👈 빌더 대신 기존 생성자 사용
+        Inventory inventory = inventoryRepository.findByHouseIdAndItemId(houseId, item.getId())
+                .orElseGet(() -> Inventory.builder()
+                        .userId(userId)
+                        .houseId(houseId)
+                        .item(item)
+                        .quantity(0)
+                        .isApplied(false)
+                        .build());
 
+        inventory.addQuantity(request.getQuantity());
         inventoryRepository.save(inventory);
     }
 
+    // 2. 인벤토리 목록 조회
     @Transactional(readOnly = true)
     public List<Inventory> getInventory(Long houseId, Long userId) {
         houseService.requireApprovedMember(houseId, userId);
         return inventoryRepository.findAllByHouseId(houseId);
     }
 
+    // 3. 아이템 적용/해제
     @Transactional
     public void toggleItemApply(Long houseId, Long inventoryItemId, Long userId, ItemApplyRequestDto request) {
         houseService.requireApprovedMember(houseId, userId);
@@ -61,6 +70,7 @@ public class ShopService {
         Inventory inventory = inventoryRepository.findByIdAndHouseId(inventoryItemId, houseId)
                 .orElseThrow(() -> new IllegalArgumentException("인벤토리 아이템을 찾을 수 없습니다."));
 
-        // boolean 처리 방식 프로젝트 엔티티에 맞게 조정
+        boolean isApply = request != null && "APPLY".equalsIgnoreCase(request.getAction());
+        inventory.setApplied(isApply);
     }
 }

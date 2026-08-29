@@ -5,18 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9f1024d4-c244-406f-b54a-67d26dd60544" name="변경" comment="">
-      <change afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/dto/HouseCurrencyDto.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/dto/ItemApplyRequestDto.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/dto/ShopPurchaseRequestDto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/controller/HouseController.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/controller/HouseController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/controller/QuestController.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/controller/QuestController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/controller/ShopController.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/controller/ShopController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/domain/house/House.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/domain/house/House.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/dto/HouseQuestResponseDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/dto/HouseQuestResponseDto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/domain/Inventory.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/domain/Inventory.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/repository/InventoryRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/repository/InventoryRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/service/QuestService.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/service/QuestService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/service/ShopService.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/service/ShopService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/CREW-API.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/CREW-API.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -189,7 +181,7 @@
       <workItem from="1787792745507" duration="10482000" />
       <workItem from="1787868801320" duration="22119000" />
       <workItem from="1787968272323" duration="1154000" />
-      <workItem from="1787969438474" duration="3164000" />
+      <workItem from="1787969438474" duration="4830000" />
     </task>
     <servers />
   </component>
