@@ -25,6 +25,7 @@ public class QuestService {
 
     private final HouseQuestRepository questRepository;
     private final HouseRepository houseRepository;
+    private final HouseService houseService; // 멤버십 보안 검증용
 
     public LocalDateTime getStartOfCurrentWeek() {
         return LocalDateTime.now()
@@ -38,8 +39,10 @@ public class QuestService {
                 .withHour(23).withMinute(59).withSecond(59).withNano(999999999);
     }
 
-    // 엔티티 대신 DTO 리스트를 반환
-    public List<HouseQuestResponseDto> getWeeklyQuests(Long houseId) {
+    // 주간 퀘스트 조회 (멤버십 검증 포함)
+    public List<HouseQuestResponseDto> getWeeklyQuests(Long houseId, Long userId) {
+        houseService.requireApprovedMember(houseId, userId); // 🔒 멤버십 검증
+
         List<HouseQuest> quests = questRepository.findByHouseIdAndWeekStartDateBetween(
                 houseId, getStartOfCurrentWeek(), getEndOfCurrentWeek()
         );
@@ -47,6 +50,30 @@ public class QuestService {
         return quests.stream()
                 .map(HouseQuestResponseDto::from)
                 .collect(Collectors.toList());
+    }
+
+    // 퀘스트 보상 수령 (멤버십 검증 및 중복 수령 방지)
+    @Transactional
+    public void claimQuestReward(Long houseId, Long questId, Long userId) {
+        houseService.requireApprovedMember(houseId, userId); // 🔒 멤버십 검증
+
+        HouseQuest quest = questRepository.findById(questId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 퀘스트입니다."));
+
+        if (!quest.isCompleted() || quest.isRewardClaimed()) {
+            throw new IllegalStateException("보상을 수령할 수 없는 상태입니다.");
+        }
+
+        House house = houseRepository.findById(houseId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 하우스입니다."));
+
+        QuestType questType = quest.getQuestType();
+
+        if (questType != null) {
+            house.addReward(questType.getRewardXp(), questType.getRewardHc());
+        }
+
+        quest.claimReward();
     }
 
     @PostConstruct
@@ -59,39 +86,5 @@ public class QuestService {
                 questRepository.save(new HouseQuest(house.getId(), type, currentWeekStart));
             }
         });
-    }
-
-    @Transactional
-    public void updateQuestProgress(Long houseId, QuestType type, int increment) {
-        LocalDateTime weekStart = getStartOfCurrentWeek();
-        LocalDateTime weekEnd = getEndOfCurrentWeek();
-
-        HouseQuest quest = questRepository.findByHouseIdAndQuestTypeAndWeekStartDateBetween(houseId, type, weekStart, weekEnd)
-                .orElseGet(() -> questRepository.save(new HouseQuest(houseId, type, weekStart)));
-
-        quest.addProgress(increment);
-    }
-
-    @Transactional
-    public void claimQuestReward(Long houseId, Long questId) {
-        HouseQuest quest = questRepository.findById(questId)
-                .orElseThrow(() -> new IllegalArgumentException("퀘스트가 존재하지 않습니다."));
-
-        if (!quest.isCompleted() || quest.isRewardClaimed()) {
-            throw new IllegalStateException("보상을 수령할 수 없는 상태입니다.");
-        }
-
-        House house = houseRepository.findById(houseId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 하우스입니다."));
-
-        QuestType questType = quest.getQuestType();
-
-        // 1. 실제 House에 XP 및 HC 적립
-        if (questType != null) {
-            house.addReward(questType.getRewardXp(), questType.getRewardHc());
-        }
-
-        // 2. 보상 수령 처리
-        quest.claimReward();
     }
 }

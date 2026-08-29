@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/duo-backend.iml" filepath="$PROJECT_DIR$/.idea/modules/duo-backend.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/chat/duo-backend.chat.iml" filepath="$PROJECT_DIR$/.idea/modules/chat/duo-backend.chat.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/chat/duo-backend.chat.main.iml" filepath="$PROJECT_DIR$/.idea/modules/chat/duo-backend.chat.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/chat/duo-backend.chat.test.iml" filepath="$PROJECT_DIR$/.idea/modules/chat/duo-backend.chat.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/duo-backend.common.iml" filepath="$PROJECT_DIR$/.idea/modules/common/duo-backend.common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/duo-backend.common.main.iml" filepath="$PROJECT_DIR$/.idea/modules/common/duo-backend.common.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/duo-backend.common.test.iml" filepath="$PROJECT_DIR$/.idea/modules/common/duo-backend.common.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/crew/duo-backend.crew.iml" filepath="$PROJECT_DIR$/.idea/modules/crew/duo-backend.crew.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/crew/duo-backend.crew.main.iml" filepath="$PROJECT_DIR$/.idea/modules/crew/duo-backend.crew.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/crew/duo-backend.crew.test.iml" filepath="$PROJECT_DIR$/.idea/modules/crew/duo-backend.crew.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/duo-backend.main.iml" filepath="$PROJECT_DIR$/.idea/modules/duo-backend.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/match/duo-backend.match.iml" filepath="$PROJECT_DIR$/.idea/modules/match/duo-backend.match.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/match/duo-backend.match.main.iml" filepath="$PROJECT_DIR$/.idea/modules/match/duo-backend.match.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/match/duo-backend.match.test.iml" filepath="$PROJECT_DIR$/.idea/modules/match/duo-backend.match.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/post/duo-backend.post.iml" filepath="$PROJECT_DIR$/.idea/modules/post/duo-backend.post.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/post/duo-backend.post.main.iml" filepath="$PROJECT_DIR$/.idea/modules/post/duo-backend.post.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/post/duo-backend.post.test.iml" filepath="$PROJECT_DIR$/.idea/modules/post/duo-backend.post.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/riot/duo-backend.riot.iml" filepath="$PROJECT_DIR$/.idea/modules/riot/duo-backend.riot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/riot/duo-backend.riot.main.iml" filepath="$PROJECT_DIR$/.idea/modules/riot/duo-backend.riot.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/riot/duo-backend.riot.test.iml" filepath="$PROJECT_DIR$/.idea/modules/riot/duo-backend.riot.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/duo-backend.test.iml" filepath="$PROJECT_DIR$/.idea/modules/duo-backend.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user/duo-backend.user.iml" filepath="$PROJECT_DIR$/.idea/modules/user/duo-backend.user.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user/duo-backend.user.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user/duo-backend.user.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user/duo-backend.user.test.iml" filepath="$PROJECT_DIR$/.idea/modules/user/duo-backend.user.test.iml" />
+    </modules>
+  </component>
+</project>
