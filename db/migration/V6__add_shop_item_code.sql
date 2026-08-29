@@ -8,7 +8,7 @@ WITH seed_candidates AS (
     SELECT id, name,
            ROW_NUMBER() OVER (PARTITION BY name ORDER BY id) AS row_number
     FROM crew_svc.shop_items
-    WHERE code IS NULL OR btrim(code) = ''
+    WHERE (code IS NULL OR btrim(code) = '')
       AND name IN (
           '기본 프로필 테두리',
           '골드 프로필 배너',
