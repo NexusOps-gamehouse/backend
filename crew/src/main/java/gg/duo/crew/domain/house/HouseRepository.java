@@ -1,7 +1,10 @@
 package gg.duo.crew.domain.house;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,4 +25,8 @@ public interface HouseRepository extends JpaRepository<House, Long> {
     Optional<House> findByIdWithMembers(Long id);
 
     boolean existsByName(String name);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT h FROM House h WHERE h.id = :id")
+    Optional<House> findByIdWithLock(@Param("id") Long id);
 }

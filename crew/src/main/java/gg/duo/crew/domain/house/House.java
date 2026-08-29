@@ -75,14 +75,6 @@ public class House {
         }
     }
 
-    // 👈 하우스 코인(HC) 차감 메서드 추가
-    public void deductHc(long amount) {
-        if (this.hc < amount) {
-            throw new IllegalStateException("하우스 코인(HC)이 부족합니다.");
-        }
-        this.hc -= amount;
-    }
-
     public void addMember(HouseMember member) {
         members.add(member);
         member.assignHouse(this);
@@ -116,5 +108,14 @@ public class House {
 
     public JoinStatus initialJoinStatus() {
         return type == HouseType.PUBLIC ? JoinStatus.APPROVED : JoinStatus.PENDING;
+    }
+    public void deductHc(long amount) {
+        if (this.hc == null) {
+            this.hc = 0L;
+        }
+        if (this.hc < amount) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT, "하우스 코인(HC)이 부족합니다.");
+        }
+        this.hc -= amount;
     }
 }
