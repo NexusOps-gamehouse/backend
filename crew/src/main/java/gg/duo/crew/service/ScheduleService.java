@@ -61,6 +61,21 @@ public class ScheduleService {
         return ScheduleDto.Response.of(schedule, userId);
     }
 
+    @Transactional
+    public ScheduleDto.Response update(Long houseId, Long scheduleId, Long userId,
+                                       ScheduleDto.WriteRequest req) {
+        houseService.requireManagerOf(houseId, userId);
+        HouseSchedule schedule = load(houseId, scheduleId);
+        schedule.update(req.title(), req.scheduledAt(), req.maxParticipants());
+        return ScheduleDto.Response.of(schedule, userId);
+    }
+
+    @Transactional
+    public void delete(Long houseId, Long scheduleId, Long userId) {
+        houseService.requireManagerOf(houseId, userId);
+        scheduleRepository.delete(load(houseId, scheduleId));
+    }
+
     private HouseSchedule load(Long houseId, Long scheduleId) {
         HouseSchedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "일정을 찾을 수 없습니다."));

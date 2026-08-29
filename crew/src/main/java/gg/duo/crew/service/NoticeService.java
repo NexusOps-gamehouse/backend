@@ -49,6 +49,15 @@ public class NoticeService {
     }
 
     @Transactional
+    public NoticeDto.Response update(Long houseId, Long noticeId, Long userId,
+                                     NoticeDto.UpdateRequest req) {
+        houseService.requireManagerOf(houseId, userId);
+        HouseNotice notice = load(houseId, noticeId);
+        notice.update(req.title(), req.content());
+        return NoticeDto.Response.of(notice);
+    }
+
+    @Transactional
     public void delete(Long houseId, Long noticeId, Long userId) {
         houseService.requireManagerOf(houseId, userId);
         noticeRepository.delete(load(houseId, noticeId));

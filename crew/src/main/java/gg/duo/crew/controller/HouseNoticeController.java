@@ -32,6 +32,13 @@ public class HouseNoticeController {
         return noticeService.create(houseId, userId(auth), req);
     }
 
+    @PutMapping("/{noticeId}")
+    public NoticeDto.Response update(@PathVariable Long houseId, @PathVariable Long noticeId,
+                                     Authentication auth,
+                                     @Valid @RequestBody NoticeDto.UpdateRequest req) {
+        return noticeService.update(houseId, noticeId, userId(auth), req);
+    }
+
     @PutMapping("/{noticeId}/pin")
     public NoticeDto.Response pin(@PathVariable Long houseId, @PathVariable Long noticeId,
                                   @RequestBody Map<String, Boolean> body, Authentication auth) {
