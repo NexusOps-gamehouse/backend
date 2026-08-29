@@ -61,4 +61,9 @@ public class HouseNotice {
     public void pin(boolean pinned) {
         this.isPinned = pinned;
     }
+
+    public void update(String title, String content) {
+        this.title = title;
+        this.content = content;
+    }
 }

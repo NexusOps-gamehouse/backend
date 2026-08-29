@@ -73,4 +73,16 @@ public class HouseSchedule {
     public void removeParticipant(Long userId) {
         participantUserIds.remove(userId);
     }
+
+    public void update(String title, LocalDateTime scheduledAt, Integer maxParticipants) {
+        int nextMaxParticipants = (maxParticipants == null || maxParticipants <= 0)
+                ? this.maxParticipants : maxParticipants;
+        if (nextMaxParticipants < participantUserIds.size()) {
+            throw new BusinessException(ErrorCode.CONFLICT,
+                    "현재 참가자 수보다 작은 정원으로 변경할 수 없습니다.");
+        }
+        this.title = title;
+        this.scheduledAt = scheduledAt;
+        this.maxParticipants = nextMaxParticipants;
+    }
 }

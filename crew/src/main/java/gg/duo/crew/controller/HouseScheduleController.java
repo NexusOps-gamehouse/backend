@@ -31,6 +31,19 @@ public class HouseScheduleController {
         return scheduleService.create(houseId, userId(auth), req);
     }
 
+    @PutMapping("/{scheduleId}")
+    public ScheduleDto.Response update(@PathVariable Long houseId, @PathVariable Long scheduleId,
+                                       Authentication auth,
+                                       @Valid @RequestBody ScheduleDto.WriteRequest req) {
+        return scheduleService.update(houseId, scheduleId, userId(auth), req);
+    }
+
+    @DeleteMapping("/{scheduleId}")
+    public void delete(@PathVariable Long houseId, @PathVariable Long scheduleId,
+                       Authentication auth) {
+        scheduleService.delete(houseId, scheduleId, userId(auth));
+    }
+
     @PostMapping("/{scheduleId}/participants")
     public ScheduleDto.Response join(@PathVariable Long houseId, @PathVariable Long scheduleId,
                                      Authentication auth) {
