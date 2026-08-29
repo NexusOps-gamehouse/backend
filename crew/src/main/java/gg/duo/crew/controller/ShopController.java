@@ -1,8 +1,8 @@
 package gg.duo.crew.controller;
 
-import gg.duo.crew.domain.Inventory;
 import gg.duo.crew.domain.ShopItem;
 import gg.duo.crew.dto.ItemApplyRequestDto;
+import gg.duo.crew.dto.InventoryResponseDto;
 import gg.duo.crew.dto.ShopPurchaseRequestDto;
 import gg.duo.crew.dto.ShopPurchaseResponseDto;
 import gg.duo.crew.repository.ShopItemRepository;
@@ -57,7 +57,7 @@ public class ShopController {
 
     // GET /api/shop/inventory
     @GetMapping("/inventory")
-    public ResponseEntity<List<Inventory>> getInventory(
+    public ResponseEntity<List<InventoryResponseDto>> getInventory(
             @RequestParam Long houseId,
             Authentication auth) {
         return ResponseEntity.ok(shopService.getInventory(houseId, getUserId(auth)));
