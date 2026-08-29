@@ -23,12 +23,13 @@ public class ShopService {
     private final HouseRepository houseRepository;
     private final HouseService houseService;
 
-    // 1. 아이템 구매
+    // 1. 아이템 구매 (findByIdWithLock 적용)
     @Transactional
     public void buyItem(Long houseId, Long userId, ShopPurchaseRequestDto request) {
         houseService.requireApprovedMember(houseId, userId);
 
-        House house = houseRepository.findById(houseId)
+        // findById 대신 비관적 락이 적용된 findByIdWithLock 사용
+        House house = houseRepository.findByIdWithLock(houseId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 하우스입니다."));
 
         ShopItem item = shopItemRepository.findById(request.getItemId())
@@ -36,10 +37,7 @@ public class ShopService {
 
         long totalCost = (long) item.getPriceHc() * request.getQuantity();
 
-        if (house.getHc() < totalCost) {
-            throw new IllegalStateException("하우스 코인(HC)이 부족합니다.");
-        }
-
+        // 코인 차감 (deductHc 내부에서 잔액 부족 예외 처리 수행)
         house.deductHc(totalCost);
 
         Inventory inventory = inventoryRepository.findByHouseIdAndItemId(houseId, item.getId())

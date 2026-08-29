@@ -5,9 +5,39 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9f1024d4-c244-406f-b54a-67d26dd60544" name="변경" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/db/migration/V5__add_xp_hc_and_seed.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/chat/duo-backend.chat.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/chat/duo-backend.chat.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/chat/duo-backend.chat.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/chat/duo-backend.chat.test.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/common/duo-backend.common.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/common/duo-backend.common.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/common/duo-backend.common.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/common/duo-backend.common.test.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/crew/duo-backend.crew.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/crew/duo-backend.crew.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/crew/duo-backend.crew.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/crew/duo-backend.crew.test.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/duo-backend.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/duo-backend.main.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/duo-backend.test.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/match/duo-backend.match.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/match/duo-backend.match.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/match/duo-backend.match.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/match/duo-backend.match.test.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/post/duo-backend.post.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/post/duo-backend.post.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/post/duo-backend.post.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/post/duo-backend.post.test.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/riot/duo-backend.riot.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/riot/duo-backend.riot.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/riot/duo-backend.riot.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/riot/duo-backend.riot.test.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/user/duo-backend.user.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/user/duo-backend.user.main.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules/user/duo-backend.user.main.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules/user/duo-backend.user.test.iml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/domain/Inventory.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/domain/Inventory.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/repository/InventoryRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/repository/InventoryRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/domain/house/House.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/domain/house/House.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/domain/house/HouseRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/domain/house/HouseRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/service/ShopService.java" beforeDir="false" afterPath="$PROJECT_DIR$/crew/src/main/java/gg/duo/crew/service/ShopService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -77,6 +107,7 @@
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "Spring Boot.ChatApplication.executor": "Run",
     "Spring Boot.CrewApplication.executor": "Run",
     "Spring Boot.MatchApplication.executor": "Run",
@@ -84,9 +115,12 @@
     "Spring Boot.RiotApplication.executor": "Run",
     "Spring Boot.UserApplication.executor": "Run",
     "codeWithMe.voiceChat.enabledByDefault": "false",
-    "git-widget-placeholder": "feature/shop-quest-currency",
+    "git-widget-placeholder": "feature/shop-fix-fresh",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/Basic-DeepProject/backend",
+    "project.structure.last.edited": "프로젝트",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
     "run.configurations.included.in.services": "true",
     "settings.editor.selected.configurable": "reference.settingsdialog.project.gradle",
     "vue.rearranger.settings.migration": "true"
@@ -127,6 +161,8 @@
       </method>
     </configuration>
     <configuration name="CrewApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <option name="ALTERNATIVE_JRE_PATH" value="17" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
       <module name="duo-backend.crew.main" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="gg.duo.crew.CrewApplication" />
       <method v="2">
@@ -182,6 +218,8 @@
       <workItem from="1787868801320" duration="22119000" />
       <workItem from="1787968272323" duration="1154000" />
       <workItem from="1787969438474" duration="4830000" />
+      <workItem from="1787986620126" duration="680000" />
+      <workItem from="1787987328852" duration="966000" />
     </task>
     <servers />
   </component>
