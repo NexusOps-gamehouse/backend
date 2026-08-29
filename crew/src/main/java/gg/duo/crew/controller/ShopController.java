@@ -11,9 +11,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/shop")
@@ -41,6 +43,16 @@ public class ShopController {
             Authentication auth) {
         shopService.buyItem(houseId, getUserId(auth), request);
         return ResponseEntity.ok(new ShopPurchaseResponseDto(true, "아이템 구매가 완료되었습니다."));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException exception) {
+        String message = exception.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getDefaultMessage())
+                .filter(value -> value != null && !value.isBlank())
+                .findFirst()
+                .orElse("입력값을 확인해주세요.");
+        return ResponseEntity.badRequest().body(Map.of("message", message));
     }
 
     // GET /api/shop/inventory
