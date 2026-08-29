@@ -65,7 +65,7 @@ public class House {
         this.createdAt = Instant.now();
     }
 
-    // 보상 적립 메서드 추가
+    // 보상 적립 메서드
     public void addReward(Long rewardXp, Long rewardHc) {
         if (rewardXp != null) {
             this.xp += rewardXp;
@@ -73,6 +73,14 @@ public class House {
         if (rewardHc != null) {
             this.hc += rewardHc;
         }
+    }
+
+    // 👈 하우스 코인(HC) 차감 메서드 추가
+    public void deductHc(long amount) {
+        if (this.hc < amount) {
+            throw new IllegalStateException("하우스 코인(HC)이 부족합니다.");
+        }
+        this.hc -= amount;
     }
 
     public void addMember(HouseMember member) {

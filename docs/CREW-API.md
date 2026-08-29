@@ -24,6 +24,10 @@
 | **공지 고정 / 삭제** | `houseId`, `noticeId` | `Notice` / 없음 | 공지 관리 |
 | **채팅 기록** | `houseId` | `ChatMessage[]` (최근 50) | 입장 시 |
 | **추천** | 없음 | `userId[]` | 함께할 사람 |
+| **주간 퀘스트 목록** | `houseId` | `Quest[]` (`questId`,`rewardClaimed`,`rewardXp`,`rewardHc`) | 퀘스트 화면 |
+| **퀘스트 보상 수령** | `houseId`, `questId` | 없음 | 보상 받기 |
+| **상점 아이템 목록** | 없음 | `ShopItem[]` | 상점 화면 |
+| **상점 구매** | `userId`, `houseId`(선택), `itemId` (쿼리 파라미터) | 없음 | 아이템 구매 |
 
 ---
 
@@ -417,6 +421,78 @@ SEND 바디
 
 ---
 
+## 16. 주간 퀘스트
+
+### Request
+```
+GET  /api/houses/{houseId}/quests
+POST /api/houses/{houseId}/quests/{questId}/claim
+```
+```
+houseId = 1
+questId = 3
+(바디 없음)
+```
+
+### Response (목록)
+```json
+[
+  { "questId": 1, "rewardClaimed": false, "rewardXp": 200, "rewardHc": 0 },
+  { "questId": 2, "rewardClaimed": false, "rewardXp": 150, "rewardHc": 0 }
+]
+```
+- 매주 월요일 0시(서버 기동 시점에도 1회)에 House마다 고정 퀘스트 4종이 새로 생성됨
+  - `WIN_TOGETHER` 7회 → 200xp · `PLAY_TOGETHER` 5회 → 150xp
+  - `SCHEDULE_JOIN` 3회 → 150xp · `DAILY_ACTIVE` 3회 → 150xp
+- 응답에 퀘스트 종류·설명·목표치·진행도(`currentCount`)가 없다 — `questId`, 보상액, 수령 여부만 내려온다
+- `rewardHc`는 현재 모든 퀘스트에서 `0`
+
+### Response (보상 수령)
+```
+200 (본문 없음)
+```
+- 완료 전이거나 이미 수령한 퀘스트 → `400` ("보상을 수령할 수 없는 상태입니다.")
+- 없는 퀘스트 / House → `400` ("퀘스트가 존재하지 않습니다." / "존재하지 않는 하우스입니다.") — 다른 API와 달리 `404`가 아님
+- 수령한 보상은 House의 `xp`/`hc`에 적립됨 (유저 개인에게는 적립되지 않음)
+
+⚠️ 다른 API와 다른 점
+- 경로가 `/api/crew/...`가 아니라 `/api/houses/...`
+- 컨트롤러가 `Authentication`을 받지 않는다 — 호출자가 그 House의 멤버인지 전혀 확인하지 않음
+- `SecurityConfig`가 `/api/houses/**`를 `permitAll`로 열어 둬서, 토큰 없이 아무나 아무 House의 퀘스트를 조회·수령할 수 있다
+
+---
+
+## 17. 상점
+
+### Request
+```
+GET  /api/shop/items
+POST /api/shop/buy?userId={userId}&houseId={houseId}&itemId={itemId}
+```
+- `buy`는 JSON 바디가 아니라 쿼리 파라미터로 받는다
+- `houseId`는 선택 — House 전용 아이템이 아니면 생략
+
+### Response (목록)
+```json
+[
+  { "id": 1, "name": "황금 테두리", "category": "BORDER", "priceHc": 500, "imageUrl": "https://.../border.png" }
+]
+```
+`category`: `BORDER` · `TITLE` · `BANNER` · `THEME` · `CHAT_SKIN` · `NICKNAME_DECO` · `HOUSE_ICON`
+
+### Response (구매)
+```
+200 (본문 없음)
+```
+- 없는 상품 → `400` ("상품이 존재하지 않습니다.")
+
+⚠️ 다른 API와 다른 점
+- `userId`를 토큰이 아니라 쿼리 파라미터로 직접 받는다 — 남의 userId를 넣으면 그 사람 명의로 구매가 기록된다
+- HC 잔액 확인·차감 로직이 주석 처리되어 있다 — 잔액이 부족해도 항상 구매에 성공하고, 어떤 재화도 차감되지 않는다
+- `SecurityConfig`가 `/api/shop/**`를 `permitAll`로 열어 둬서 토큰 없이도 호출 가능
+
+---
+
 # 전체 호출 흐름
 
 ```
@@ -498,6 +574,7 @@ Response
 | 등급 | 조건 | 해당 API |
 | --- | --- | --- |
 | 공개 | 토큰 없음 | House 목록, House 상세 |
+| 공개(의도됐는지 불명확) | 인증 자체를 확인하지 않음 — `/api/houses/**`, `/api/shop/**` 가 `permitAll` | 퀘스트 조회·보상 수령, 상점 조회·구매 |
 | 로그인 | 유효한 토큰 | 생성, 가입 신청, 탈퇴, 내 House, 추천 |
 | 멤버 | 그 House의 APPROVED | 일정 전체, 공지 조회, 채팅 |
 | 관리자 | LEADER / SUB_LEADER | 대기 목록, 승인, 거절, 강퇴, 공지 작성·고정·삭제 |
@@ -507,11 +584,13 @@ Response
 
 | 코드 | 상황 |
 | --- | --- |
-| 400 | 필수 필드 누락, `role: LEADER` 지정, `scheduledAt`에 `Z` |
+| 400 | 필수 필드 누락, `role: LEADER` 지정, `scheduledAt`에 `Z`, 없는 퀘스트/상품, 미완료·중복 수령 퀘스트 |
 | 401 | 토큰 없음 · 만료 |
 | 403 | 멤버 아님 · 방장 아님 |
 | 404 | 없는 House · 일정 · 공지 |
 | 409 | 중복 신청, 정원 초과, 이미 승인, 이미 참가 |
+
+퀘스트·상점 API는 `BusinessException`이 아니라 `IllegalArgumentException`/`IllegalStateException`을 던진다. 그래서 다른 API였다면 `404`·`409`였을 상황(없는 퀘스트, 없는 상품, 이미 수령한 보상)도 전부 `400`으로 내려간다.
 
 # 프론트 목업과 다른 점
 
