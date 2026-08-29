@@ -5,6 +5,7 @@ import gg.duo.crew.domain.ShopItem;
 import gg.duo.crew.domain.house.House;
 import gg.duo.crew.domain.house.HouseRepository;
 import gg.duo.crew.dto.ItemApplyRequestDto;
+import gg.duo.crew.dto.InventoryResponseDto;
 import gg.duo.crew.dto.ShopPurchaseRequestDto;
 import gg.duo.crew.repository.InventoryRepository;
 import gg.duo.crew.repository.ShopItemRepository;
@@ -55,9 +56,11 @@ public class ShopService {
 
     // 2. 인벤토리 목록 조회
     @Transactional(readOnly = true)
-    public List<Inventory> getInventory(Long houseId, Long userId) {
+    public List<InventoryResponseDto> getInventory(Long houseId, Long userId) {
         houseService.requireApprovedMember(houseId, userId);
-        return inventoryRepository.findAllByHouseId(houseId);
+        return inventoryRepository.findAllByHouseId(houseId).stream()
+                .map(InventoryResponseDto::from)
+                .toList();
     }
 
     // 3. 아이템 적용/해제
