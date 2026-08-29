@@ -12,10 +12,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.DayOfWeek;
 import java.time.LocalDateTime;
-import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import gg.duo.crew.util.HouseWeekUtil;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,15 +27,11 @@ public class QuestService {
     private final HouseService houseService; // 멤버십 보안 검증용
 
     public LocalDateTime getStartOfCurrentWeek() {
-        return LocalDateTime.now()
-                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                .withHour(0).withMinute(0).withSecond(0).withNano(0);
+        return HouseWeekUtil.startOfCurrentWeek();
     }
 
     public LocalDateTime getEndOfCurrentWeek() {
-        return LocalDateTime.now()
-                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
-                .withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+        return HouseWeekUtil.endOfCurrentWeek();
     }
 
     // 주간 퀘스트 조회 (멤버십 검증 포함)

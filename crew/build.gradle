@@ -21,4 +21,5 @@ dependencies {
     implementation 'io.projectreactor.netty:reactor-netty'
 
     runtimeOnly 'org.postgresql:postgresql'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

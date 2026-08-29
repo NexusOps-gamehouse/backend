@@ -1,5 +1,6 @@
 package gg.duo.crew.domain.house;
 
+import gg.duo.crew.dto.HouseRankingCandidate;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -23,6 +24,20 @@ public interface HouseRepository extends JpaRepository<House, Long> {
 
     @Query("SELECT h FROM House h LEFT JOIN FETCH h.members WHERE h.id = :id")
     Optional<House> findByIdWithMembers(Long id);
+
+    @Query("""
+            SELECT new gg.duo.crew.dto.HouseRankingCandidate(
+                h.id, h.name, h.createdAt, h.xp, h.representativeGame, h.maxMembers, COUNT(m.id))
+            FROM House h
+            LEFT JOIN h.members m ON m.status = :approvedStatus
+            WHERE h.type = :houseType AND h.activityType = :activityType
+            GROUP BY h.id, h.name, h.createdAt, h.xp, h.representativeGame, h.maxMembers
+            ORDER BY h.xp DESC, h.createdAt ASC, h.name ASC, h.id ASC
+            """)
+    List<HouseRankingCandidate> findEligibleRankingCandidates(
+            @Param("houseType") HouseType houseType,
+            @Param("activityType") HouseActivityType activityType,
+            @Param("approvedStatus") JoinStatus approvedStatus);
 
     boolean existsByName(String name);
 

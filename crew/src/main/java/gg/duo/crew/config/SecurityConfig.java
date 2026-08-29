@@ -21,6 +21,7 @@ public class SecurityConfig extends SecurityBaseConfig {
         // 기존 설정들
         auth.requestMatchers("/api/shop/**", "/api/houses/**").permitAll();
         auth.requestMatchers(HttpMethod.GET, "/api/crew/houses", "/api/crew/houses/*").permitAll();
+        auth.requestMatchers(HttpMethod.GET, "/api/crew/houses/rankings").permitAll();
         auth.requestMatchers("/ws-house/**").permitAll();
         auth.requestMatchers("/internal/**").permitAll();
     }
