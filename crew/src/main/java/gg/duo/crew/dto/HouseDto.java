@@ -1,9 +1,9 @@
 package gg.duo.crew.dto;
 
 import gg.duo.crew.domain.house.House;
+import gg.duo.crew.domain.house.HouseActivityType;
 import gg.duo.crew.domain.house.HouseMember;
 import gg.duo.crew.domain.house.HouseType;
-import gg.duo.crew.domain.house.HouseActivityType;
 import gg.duo.crew.domain.house.JoinStatus;
 import gg.duo.crew.domain.house.MemberRole;
 import jakarta.validation.constraints.NotBlank;
@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Positive;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 
 /** House 관련 요청/응답 계약. */
 public final class HouseDto {
@@ -26,11 +27,15 @@ public final class HouseDto {
             @jakarta.validation.constraints.NotNull(message = "House 활동 유형은 필수입니다.")
             HouseActivityType activityType,
             @NotBlank(message = "대표 게임은 필수입니다.")
-            @jakarta.validation.constraints.Size(max = 100, message = "대표 게임은 100자 이하여야 합니다.")
+            @jakarta.validation.constraints.Size(
+                    max = 100,
+                    message = "대표 게임은 100자 이하여야 합니다."
+            )
             String representativeGame,
-            @Positive(message = "정원은 1 이상이어야 합니다.") Integer maxMembers) {}
+            @Positive(message = "정원은 1 이상이어야 합니다.") Integer maxMembers
+    ) {}
 
-    /** 목록용. 멤버 배열까지 내리면 목록 한 번에 응답이 커진다 — 인원 수만 준다. */
+    /** 목록용. */
     public record Summary(
             Long id,
             String name,
@@ -39,24 +44,38 @@ public final class HouseDto {
             HouseActivityType activityType,
             String representativeGame,
             Long leaderId,
+            String leaderName,
             int maxMembers,
             long memberCount,
             Instant createdAt,
             MemberRole myRole,
-            JoinStatus myStatus) {
+            JoinStatus myStatus
+    ) {
 
-        public static Summary of(House house, HouseMember me) {
+        public static Summary of(
+                House house,
+                HouseMember me,
+                String leaderName
+        ) {
             return new Summary(
-                    house.getId(), house.getName(), house.getDescription(), house.getType(),
-                    house.getActivityType(), house.getRepresentativeGame(),
-                    house.getLeaderId(), house.getMaxMembers(), house.approvedMemberCount(),
+                    house.getId(),
+                    house.getName(),
+                    house.getDescription(),
+                    house.getType(),
+                    house.getActivityType(),
+                    house.getRepresentativeGame(),
+                    house.getLeaderId(),
+                    leaderName,
+                    house.getMaxMembers(),
+                    house.approvedMemberCount(),
                     house.getCreatedAt(),
                     me == null ? null : me.getRole(),
-                    me == null ? null : me.getStatus());
+                    me == null ? null : me.getStatus()
+            );
         }
     }
 
-    /** 상세용. 승인된 멤버만 내린다 — 대기자 목록은 관리 권한이 있어야 볼 수 있다. */
+    /** 상세용. 승인된 멤버만 내린다. */
     public record Detail(
             Long id,
             String name,
@@ -65,39 +84,72 @@ public final class HouseDto {
             HouseActivityType activityType,
             String representativeGame,
             Long leaderId,
+            String leaderName,
             int maxMembers,
             Instant createdAt,
             List<Member> members,
             MemberRole myRole,
             JoinStatus myStatus,
-            long pendingCount) {
+            long pendingCount
+    ) {
 
-        public static Detail of(House house, HouseMember me) {
+        public static Detail of(
+                House house,
+                HouseMember me,
+                Function<Long, String> nicknameResolver
+        ) {
             List<Member> approved = house.getMembers().stream()
                     .filter(m -> m.getStatus() == JoinStatus.APPROVED)
                     .sorted(Comparator.comparing(HouseMember::getRole))
-                    .map(Member::of)
+                    .map(m -> Member.of(
+                            m,
+                            nicknameResolver.apply(m.getUserId())
+                    ))
                     .toList();
+
             long pending = house.getMembers().stream()
                     .filter(m -> m.getStatus() == JoinStatus.PENDING)
                     .count();
+
             return new Detail(
-                    house.getId(), house.getName(), house.getDescription(), house.getType(),
-                    house.getActivityType(), house.getRepresentativeGame(),
-                    house.getLeaderId(), house.getMaxMembers(), house.getCreatedAt(),
+                    house.getId(),
+                    house.getName(),
+                    house.getDescription(),
+                    house.getType(),
+                    house.getActivityType(),
+                    house.getRepresentativeGame(),
+                    house.getLeaderId(),
+                    nicknameResolver.apply(house.getLeaderId()),
+                    house.getMaxMembers(),
+                    house.getCreatedAt(),
                     approved,
                     me == null ? null : me.getRole(),
                     me == null ? null : me.getStatus(),
-                    pending);
+                    pending
+            );
         }
     }
 
-    public record Member(Long memberId, Long userId, MemberRole role,
-                         JoinStatus status, Instant joinedAt, Instant requestedAt) {
+    public record Member(
+            Long memberId,
+            Long userId,
+            String nickname,
+            MemberRole role,
+            JoinStatus status,
+            Instant joinedAt,
+            Instant requestedAt
+    ) {
 
-        public static Member of(HouseMember m) {
-            return new Member(m.getId(), m.getUserId(), m.getRole(), m.getStatus(),
-                    m.getJoinedAt(), m.getRequestedAt());
+        public static Member of(HouseMember member, String nickname) {
+            return new Member(
+                    member.getId(),
+                    member.getUserId(),
+                    nickname,
+                    member.getRole(),
+                    member.getStatus(),
+                    member.getJoinedAt(),
+                    member.getRequestedAt()
+            );
         }
     }
 
