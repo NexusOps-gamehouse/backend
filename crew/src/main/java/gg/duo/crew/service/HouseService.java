@@ -51,6 +51,8 @@ public class HouseService {
                 .name(req.name())
                 .description(req.description())
                 .type(req.type())
+                .activityType(req.activityType())
+                .representativeGame(req.representativeGame())
                 .leaderId(leaderId)
                 .maxMembers(req.maxMembers())
                 .build();
@@ -73,7 +75,8 @@ public class HouseService {
     public HouseDto.Detail update(Long houseId, Long requesterId, HouseDto.WriteRequest req) {
         House house = loadWithMembers(houseId);
         requireLeader(house, requesterId);
-        house.update(req.name(), req.description(), req.type(), req.maxMembers());
+        house.update(req.name(), req.description(), req.type(), req.activityType(),
+                req.representativeGame(), req.maxMembers());
         return HouseDto.Detail.of(house, findMe(house, requesterId));
     }
 

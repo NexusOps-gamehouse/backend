@@ -3,6 +3,7 @@ package gg.duo.crew.dto;
 import gg.duo.crew.domain.house.House;
 import gg.duo.crew.domain.house.HouseMember;
 import gg.duo.crew.domain.house.HouseType;
+import gg.duo.crew.domain.house.HouseActivityType;
 import gg.duo.crew.domain.house.JoinStatus;
 import gg.duo.crew.domain.house.MemberRole;
 import jakarta.validation.constraints.NotBlank;
@@ -22,6 +23,11 @@ public final class HouseDto {
             @NotBlank(message = "House 이름은 필수입니다.") String name,
             String description,
             HouseType type,
+            @jakarta.validation.constraints.NotNull(message = "House 활동 유형은 필수입니다.")
+            HouseActivityType activityType,
+            @NotBlank(message = "대표 게임은 필수입니다.")
+            @jakarta.validation.constraints.Size(max = 100, message = "대표 게임은 100자 이하여야 합니다.")
+            String representativeGame,
             @Positive(message = "정원은 1 이상이어야 합니다.") Integer maxMembers) {}
 
     /** 목록용. 멤버 배열까지 내리면 목록 한 번에 응답이 커진다 — 인원 수만 준다. */
@@ -30,6 +36,8 @@ public final class HouseDto {
             String name,
             String description,
             HouseType type,
+            HouseActivityType activityType,
+            String representativeGame,
             Long leaderId,
             int maxMembers,
             long memberCount,
@@ -40,6 +48,7 @@ public final class HouseDto {
         public static Summary of(House house, HouseMember me) {
             return new Summary(
                     house.getId(), house.getName(), house.getDescription(), house.getType(),
+                    house.getActivityType(), house.getRepresentativeGame(),
                     house.getLeaderId(), house.getMaxMembers(), house.approvedMemberCount(),
                     house.getCreatedAt(),
                     me == null ? null : me.getRole(),
@@ -53,6 +62,8 @@ public final class HouseDto {
             String name,
             String description,
             HouseType type,
+            HouseActivityType activityType,
+            String representativeGame,
             Long leaderId,
             int maxMembers,
             Instant createdAt,
@@ -72,6 +83,7 @@ public final class HouseDto {
                     .count();
             return new Detail(
                     house.getId(), house.getName(), house.getDescription(), house.getType(),
+                    house.getActivityType(), house.getRepresentativeGame(),
                     house.getLeaderId(), house.getMaxMembers(), house.getCreatedAt(),
                     approved,
                     me == null ? null : me.getRole(),

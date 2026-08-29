@@ -32,6 +32,13 @@ public class House {
     @Column(nullable = false, length = 16)
     private HouseType type;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "activity_type", nullable = false, length = 16)
+    private HouseActivityType activityType;
+
+    @Column(name = "representative_game", length = 100)
+    private String representativeGame;
+
     @Column(name = "leader_id", nullable = false)
     private Long leaderId;
 
@@ -52,10 +59,13 @@ public class House {
     private List<HouseMember> members = new ArrayList<>();
 
     @Builder
-    public House(String name, String description, HouseType type, Long leaderId, Integer maxMembers) {
+    public House(String name, String description, HouseType type, HouseActivityType activityType,
+                 String representativeGame, Long leaderId, Integer maxMembers) {
         this.name = name;
         this.description = description;
         this.type = type != null ? type : HouseType.PUBLIC;
+        this.activityType = activityType != null ? activityType : HouseActivityType.SOCIAL;
+        this.representativeGame = representativeGame;
         this.leaderId = leaderId;
         this.maxMembers = (maxMembers == null || maxMembers <= 0) ? 20 : maxMembers;
     }
@@ -85,10 +95,15 @@ public class House {
         member.assignHouse(null);
     }
 
-    public void update(String name, String description, HouseType type, Integer maxMembers) {
+    public void update(String name, String description, HouseType type,
+                       HouseActivityType activityType, String representativeGame, Integer maxMembers) {
         if (name != null && !name.isBlank()) this.name = name;
         if (description != null) this.description = description;
         if (type != null) this.type = type;
+        if (activityType != null) this.activityType = activityType;
+        if (representativeGame != null && !representativeGame.isBlank()) {
+            this.representativeGame = representativeGame;
+        }
         if (maxMembers != null && maxMembers > 0) {
             if (maxMembers < approvedMemberCount()) {
                 throw new BusinessException(ErrorCode.INVALID_INPUT,
