@@ -1,4 +1,6 @@
 -- ShopItem의 숫자 ID와 분리된 영구 식별자 추가.
+BEGIN;
+
 ALTER TABLE crew_svc.shop_items
     ADD COLUMN IF NOT EXISTS code VARCHAR(100);
 
@@ -36,3 +38,5 @@ ALTER TABLE crew_svc.shop_items
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_shop_items_code
     ON crew_svc.shop_items (code);
+
+COMMIT;
