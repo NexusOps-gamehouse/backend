@@ -14,6 +14,9 @@ public class ShopItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true, updatable = false, length = 100)
+    private String code;
+
     private String name;
 
     @Enumerated(EnumType.STRING)
@@ -24,6 +27,6 @@ public class ShopItem {
     private String imageUrl;
 
     public enum ItemCategory {
-        BORDER, TITLE, BANNER, THEME, CHAT_SKIN, NICKNAME_DECO, HOUSE_ICON
+        BORDER, BANNER, BADGE, THEME, TITLE, CHAT_SKIN, NICKNAME_DECO, HOUSE_ICON
     }
 }
