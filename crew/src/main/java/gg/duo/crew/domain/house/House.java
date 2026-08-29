@@ -41,7 +41,7 @@ public class House {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
-    // XP 및 HC 필드 추가 (기본값 0L)
+    // XP 및 HC 필드 (기본값 0L)
     @Column(nullable = false)
     private Long xp = 0L;
 
@@ -65,7 +65,7 @@ public class House {
         this.createdAt = Instant.now();
     }
 
-    // 보상 적립 메서드 추가
+    // 보상 적립 메서드
     public void addReward(Long rewardXp, Long rewardHc) {
         if (rewardXp != null) {
             this.xp += rewardXp;
@@ -73,6 +73,17 @@ public class House {
         if (rewardHc != null) {
             this.hc += rewardHc;
         }
+    }
+
+    // 👈 코인 차감 메서드 (추가됨)
+    public void deductHc(long amount) {
+        if (this.hc == null) {
+            this.hc = 0L;
+        }
+        if (this.hc < amount) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT, "하우스 코인(HC)이 부족합니다.");
+        }
+        this.hc -= amount;
     }
 
     public void addMember(HouseMember member) {
