@@ -1,4 +1,4 @@
-# backend · 보관 (archived)
+# backend
 
 GameHouse 백엔드의 **초기 구현체**입니다. Gradle 멀티모듈 하나에 서비스 6개를 담고 Docker Compose 로 EC2 한 대에 올리던 시절의 코드입니다.
 
