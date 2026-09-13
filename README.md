@@ -76,24 +76,3 @@ CI가 이미지를 빌드만 하지 않고 **실제로 띄워봤던** 이유는 
 `deploy` job 은 `if: false` 로 비활성 상태다. EKS 전환이 결정되면서 EC2 배포를 멈춘 시점의 모습 그대로다.
 
 ---
-
-## 5. 이 레포에 남아 있는 것
-
-분리된 레포로 옮기지 않은 것들이다. 참고용으로만 남긴다.
-
-| 경로 | 무엇 |
-|---|---|
-| `LOCAL-SETUP.md` | 모노레포 시절 로컬 실행 가이드 — PostgreSQL 스키마·계정 분리, RabbitMQ, 서비스 5개 동시 기동 |
-| `API_Specification_Extended.md` | Crew(House) API 명세. 구현 상태(`[미구현]`)까지 표시되어 있다 |
-| `docs/CREW-API.md` · Postman 컬렉션 | Crew API 문서 · 요청 모음 |
-| `db/init-crew.sql` · `db/migration/` | 초기 스키마 · 마이그레이션 스크립트 |
-| `application-secret-example.yml` | 시크릿 파일 형식 |
-
-> 위 문서들은 **분리 이전 기준**이다. 현재 동작과 어긋날 수 있으니 실제 스펙은 각 서비스 레포를 확인할 것.
-
----
-
-## 새로 작업하려면
-
-이 레포를 클론하지 말고 위 표에서 해당 서비스 레포로 가면 된다.
-전체를 한 번에 띄워보려면 [infra 레포의 `k8s/README.md`](https://github.com/NexusOps-gamehouse/infra/blob/main/k8s/README.md) 를 따라 kind 클러스터를 쓰는 편이 빠르다.
